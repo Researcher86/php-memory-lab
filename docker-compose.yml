@@ -1,7 +1,7 @@
 services:
   php:
-    build:
-      context: .
+    build: .
+    container_name: php-memory-lab
     working_dir: /app
     volumes:
       - ./:/app

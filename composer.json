@@ -4,12 +4,12 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "MemoryLab\\": "src/"
+            "App\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "MemoryLab\\Tests\\": "tests/"
+            "App\\Tests\\": "tests/"
         }
     },
     "require": {

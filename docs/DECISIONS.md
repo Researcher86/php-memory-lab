@@ -1,0 +1,67 @@
+# Decisions — PHP Memory Lab
+
+A record of meaningful technical and process decisions, with the reason each
+was made. New decisions get appended with a date.
+
+## 2026-09-12 — Phase 0 is committed; stack is PHP 8.5
+
+- PHP is `^8.5`, matching the sibling project `php-worker-pool`, not the
+  `^8.4` first suggested in the plan.
+- The container image is `php:8.5-cli` with `pcntl`, `posix`, `sockets`,
+  `sysvmsg`, `sysvsem`, `sysvshm`, `ffi`, plus `Xdebug` in
+  `start_with_request=trigger` mode so a debugger only attaches when asked.
+- Initial commit `Initialize php-memory-lab project` contains the verified
+  Phase 0 skeleton (Composer, Dockerfile, docker-compose, Makefile, PHPUnit,
+  PHPStan level 8, PHP-CS-Fixer).
+
+## 2026-09-12 — Namespace is `App\`, not `MemoryLab\`
+
+- Autoload: `App\` → `src/`, `App\Tests\` → `tests/`.
+- No `MemoryLab\` prefix survives anywhere.
+
+## 2026-09-12 — No `extension_loaded()` runtime checks
+
+- The container is the guarantee that the required extensions exist; a
+  `PlatformRequirementsTest` that asserts
+  `extension_loaded()` for each extension was removed.
+- Platform-dependent engine tests (fork, SysV, FFI, mmap) either run in the
+  container or skip when the *underlying facility* (e.g. `/proc`) is
+  unavailable — they do not probe extensions at runtime.
+
+## 2026-09-12 — LICENSE removed
+
+- The project ships without a `LICENSE` file; `composer.json` still declares
+  `"license": "MIT"`.
+
+## 2026-09-12 — `PLAN.md` folded into `docs/PHASES.md` and deleted
+
+- The long plan document no longer lives at the repository root. Its content
+  was folded into `docs/PHASES.md`, which now follows the worker-pool format
+  (Final Architecture, Core Principles, phase sections with Goal / Tasks /
+  Definition of Done / Tests).
+- `docs/PHASES.md` is the single build journal: every completed phase is one
+  commit to `master`, and work is marked done only after it passes in the
+  container (`make test`, `make analyse`, `make format-check`).
+
+## 2026-09-12 — Tooling mirrors `php-worker-pool`
+
+- `docker-compose.yml` gained a named service container and matches the
+  sibling project's compose conventions.
+- `Makefile` was rewritten to the worker-pool style: `up`/`down`/`build`,
+  `shell`, `htop`, `install`, `test`, `analyse`, `format`,
+  `format-check`, plus `run-experiment`/`run-benchmark` with `-debug`
+  variants (Xdebug via `XDEBUG_TRIGGER=1`).
+- CI (`github/workflows/ci.yml`) runs on GitHub Actions with the required
+  extensions via `shivammathur/setup-php`, then `composer test`,
+  `composer analyse`, `composer format:check`.
+- `README.md` was rewritten in the worker-pool style (30-second demo, what
+  it does, mechanisms → files, documentation, development, roadmap).
+
+## 2026-09-12 — Project root layout
+
+- `src/` and `tests/` hold no empty `.gitkeep` placeholders; the directory
+  they were keeping non-empty now contain real files (`src/Memory/`,
+  `tests/`).
+- Experiments live at `experiments/NN-name/`, benchmarks at `benchmarks/`,
+  measured results in `var/results/`, all per the plan and unchanged by the
+  restructure.

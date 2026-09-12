@@ -1,28 +1,50 @@
-.PHONY: build install test analyse format format-check experiment benchmark shell
+.PHONY: up down build shell htop install test analyse format format-check \
+        experiment experiment-debug benchmark benchmark-debug
+
+up:
+	docker compose up -d
+
+down:
+	docker compose down
 
 build:
 	docker compose build
 
-install: build
-	docker compose run --rm php composer install
+shell: up
+	docker compose exec php bash
 
-test:
-	docker compose run --rm php composer test
+htop: up
+	docker compose exec php htop
 
-analyse:
-	docker compose run --rm php composer analyse
+install: up
+	docker compose exec php composer install
 
-format:
-	docker compose run --rm php composer format
+test: up
+	docker compose exec php composer test
 
-format-check:
-	docker compose run --rm php composer format:check
+analyse: up
+	docker compose exec php composer analyse
 
-experiment:
-	docker compose run --rm php php bin/experiment $(ARGS)
+format: up
+	docker compose exec php composer format
 
-benchmark:
-	docker compose run --rm php php bin/benchmark $(ARGS)
+format-check: up
+	docker compose exec php composer format:check
 
-shell:
-	docker compose run --rm php bash
+experiment: up
+	docker compose exec php php bin/experiment $(ARGS)
+
+benchmark: up
+	docker compose exec php php bin/benchmark $(ARGS)
+
+# The image ships xdebug with start_with_request=trigger, so nothing reaches
+# for a debugger unless asked - which matters here, where one experiment is a
+# parent plus N forked children. These targets are the ask; point your IDE at
+# port 9003 first, or the connection attempt just times out and the run
+# continues.
+
+experiment-debug: up
+	docker compose exec php bash -c "XDEBUG_TRIGGER=1 php bin/experiment $(ARGS)"
+
+benchmark-debug: up
+	docker compose exec php bash -c "XDEBUG_TRIGGER=1 php bin/benchmark $(ARGS)"
