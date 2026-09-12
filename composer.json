@@ -1,0 +1,38 @@
+{
+    "name": "researcher86/php-memory-lab",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MemoryLab\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MemoryLab\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.5",
+        "ext-pcntl": "*",
+        "ext-posix": "*",
+        "ext-sockets": "*",
+        "ext-sysvmsg": "*",
+        "ext-sysvsem": "*",
+        "ext-sysvshm": "*"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "format": "php-cs-fixer fix --diff",
+        "format:check": "php-cs-fixer fix --diff --dry-run"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,6 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+fwrite(STDOUT, "The experiment CLI is introduced in phase 11.\n");
