@@ -148,3 +148,23 @@ was made. New decisions get appended with a date.
 - The SIGBUS demonstration runs in a forked child. It is the first experiment
   in the project whose expected outcome is a dead process, and the project
   rule about unsafe experiments is what decides where it runs.
+
+## 2026-09-13 — Phase 9: `ext-ffi` declared, and the bounds check is three comparisons
+
+- `ext-ffi` joined the `require` block in `composer.json`. It had been in the
+  image and in CI since Phase 0 but was never declared as a platform
+  requirement, which only became wrong once Phases 8 and 9 made it
+  load-bearing. `composer.lock` was refreshed with it.
+- `FfiBuffer` validates with `$offset > $size || $length > $size - $offset`
+  rather than `$offset + $length > $size`. The sum overflows for a large
+  offset and wraps negative, which would make the guard permit exactly the
+  access it exists to stop; `testAnOffsetThatWouldOverflowTheBoundsCheckIsRefused`
+  passes `PHP_INT_MAX` to keep it that way.
+- `FfiBuffer::free()` is idempotent and `__destruct()` calls it. The
+  underlying `free()` is neither of those things, and a buffer whose last
+  reference is dropped would otherwise leak with nothing in the PHP counters
+  to show for it. Explicit `free()` remains the intended route; the destructor
+  is a backstop.
+- The unsafe ownership experiments stay out of the automated test suite and
+  run each case in a forked child. Several of them end the process by design,
+  which is the result being demonstrated rather than a problem to work around.

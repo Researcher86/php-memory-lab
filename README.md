@@ -98,7 +98,7 @@ Every file below is standalone enough to open cold.
 | SysV shared memory differs from raw bytes, and why it races | [`src/Ipc/SharedMemorySegment.php`](src/Ipc/SharedMemorySegment.php) · [`src/Ipc/Semaphore.php`](src/Ipc/Semaphore.php) |
 | a fixed-size shared ring buffer synchronizes one producer/consumer | [`src/Ipc/RingBuffer.php`](src/Ipc/RingBuffer.php) |
 | files map into the address space | [`src/Native/MappedFile.php`](src/Native/MappedFile.php) · [`src/Native/Libc.php`](src/Native/Libc.php) |
-| native memory lives outside the engine, and what that unlocks | `src/Native/FfiBuffer.php` (Phase 9) |
+| native memory lives outside the engine, and what that unlocks | [`src/Native/FfiBuffer.php`](src/Native/FfiBuffer.php) |
 
 Anything marked *Phase N* follows the roadmap below; everything linked is
 built and test-ready today.
@@ -116,7 +116,7 @@ built and test-ready today.
 | **docs/fork-and-cow.md** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
 | **docs/ipc-comparison.md** (Phase 12) | Unix socket vs SysV queue vs shared memory vs semaphore vs `mmap` vs FFI |
 | **[docs/shared-memory.md](docs/shared-memory.md)** (Phase 6) | races, atomicity, cleanup, crash consistency, segment lifecycle |
-| **[docs/mmap.md](docs/mmap.md)** (Phase 8) · **docs/ffi-memory.md** (Phase 9) | mappings and native ownership, with their hazards |
+| **[docs/mmap.md](docs/mmap.md)** (Phase 8) · **[docs/ffi-memory.md](docs/ffi-memory.md)** (Phase 9) | mappings and native ownership, with their hazards |
 | the rest of this file | the concepts, in depth |
 
 ---
@@ -287,7 +287,7 @@ and a child that dies mid-frame.
 
 ## Phase 0 — Project Setup
 
-* [x] Composer project (`researcher86/php-memory-lab`, PHP 8.5, PSR-4 `App\` → `src/`)
+* [x] Composer project (`researcher86/php-memory-lab`, PHP 8.5, PSR-4 `App\` → `src/`, platform extensions declared)
 * [x] Dockerfile: `php:8.5-cli` + `pcntl`, `posix`, `shmop`, `sockets`, `sysvmsg`, `sysvsem`, `sysvshm`, `ffi`
 * [x] Docker Compose, Makefile (test/analyse/format/shell/htop), PHPUnit, PHPStan level 8, PHP-CS-Fixer
 * [x] Initial commit: `Initialize php-memory-lab project`
@@ -350,9 +350,9 @@ and a child that dies mid-frame.
 
 ## Phase 9 — FFI and Native Memory
 
-* [ ] `FfiBuffer` with strict boundary validation
-* [ ] ownership experiments (contained): double free, use-after-free, overflow
-* [ ] PHP vs native comparison, `docs/ffi-memory.md`
+* [x] `FfiBuffer` with strict boundary validation (including the overflow case)
+* [x] ownership experiments (contained): double free, use-after-free, overflow, leaks
+* [x] PHP string vs array vs FFI buffer vs mapped file, `docs/ffi-memory.md`
 
 ## Phase 10 — Benchmark Harness
 

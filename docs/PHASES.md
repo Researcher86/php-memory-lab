@@ -586,7 +586,7 @@ Understand memory-mapped files and their relationship to virtual memory.
 
 ---
 
-## Phase 9 — FFI and Native Memory
+## Phase 9 — FFI and Native Memory ✅
 
 ### Goal
 
@@ -594,37 +594,64 @@ Understand memory allocated outside the PHP engine.
 
 ### Tasks
 
-- [ ] 9.1 Native allocation
-  - FFI to `malloc(size_t)` / `free(void*)`
-- [ ] 9.2 `FfiBuffer`
-  - `__construct($size)`, `write($offset, $data)`, `read($offset, $length)`,
-    `free()`
-  - strict boundary validation (offsets, lengths, overflow, negative
-    values, larger-than-buffer)
+- [x] 9.1 Native allocation
+  - `malloc(size_t)` / `free(void*)` through the same `Libc` handle Phase 8
+    introduced
+- [x] 9.2 `FfiBuffer`
+  - `allocate($size)`, `write($offset, $data)`, `read($offset, $length)`,
+    `free()`, `address()`, `isAllocated()`, plus a destructor as a backstop
+  - strict boundary validation: negative offsets and lengths, offsets at or
+    past the end, and lengths that would overflow an `$offset + $length`
+    comparison
   - `src/Native/FfiBuffer.php`
-- [ ] 9.3 Memory ownership experiments
-  - allocation, deallocation, double free, use-after-free, buffer
-    overflow, PHP/FFI object lifetimes, native memory invisible to
-    `memory_get_usage()` but visible in RSS, explicit vs destructor
-    cleanup — only inside disposable containers
-- [ ] 9.4 Compare PHP and native buffers
-  - PHP string, PHP array, FFI C buffer, mmap-backed buffer
-  - allocation time, usage, access, copying, serialization, cleanup, RSS
-- [ ] 9.5 `docs/ffi-memory.md`
-  - pointers, ownership, allocation/deallocation, boundaries, lifetime,
-    undefined behavior, ABI compatibility, why extra care is needed
+- [x] 9.3 Memory ownership experiments
+  - `experiments/10-ffi/native-allocation.php` — 256 MiB allocated under a
+    128 MiB `memory_limit`, RSS moving while the PHP counters do not, and
+    64 MiB leaked by dropping a pointer
+  - `experiments/10-ffi/unsafe-ownership.php` — double free, write after
+    free, read after free, and a 4 KiB write into a 64-byte allocation, each
+    in its own forked child, with the same three mistakes shown being refused
+    by `FfiBuffer`
+- [x] 9.4 Compare PHP and native buffers
+  - `experiments/10-ffi/buffer-comparison.php` — the same 16 MiB as a PHP
+    string, a PHP array, an FFI buffer and a mapped file: allocation, write,
+    read and release timings against PHP usage and RSS, held and after release
+- [x] 9.5 `docs/ffi-memory.md`
+  - pointers, ownership, allocation and deallocation, boundaries, lifetime,
+    undefined behaviour, ABI as an unchecked contract, and why RSS is the only
+    counter that describes any of it
 
 ### Definition of Done
 
-- `FfiBuffer` validates every access and never lets a read/write escape its
+- `FfiBuffer` validates every access and never lets a read or write escape its
   bounds.
-- Native-vs-PHP comparison is recorded.
+- The native-against-PHP comparison is recorded.
 
 ### Tests
 
-- `tests/Native/FfiBufferTest.php` — boundaries: negative, overflow,
-  exceeding buffer, balanced allocation/free
-- Unsafe ownership experiments are manual, not part of the automated suite.
+- `tests/Native/FfiBufferTest.php` — round trips, the whole buffer and its
+  last byte being addressable, reads and writes past the end, an offset at the
+  end, negative offsets and lengths, a `PHP_INT_MAX` offset that would
+  overflow a naive bounds check, zero and negative allocations, freeing twice,
+  use after free, allocations not overlapping, and 32 MiB of native memory
+  moving `memory_get_usage()` by less than a kilobyte
+- The unsafe ownership experiments are deliberately not in the automated
+  suite: several of them end the process on purpose
+
+### Notes
+
+- The most useful result is how little the severity of a mistake has to do
+  with whether anything reports it. A double free is caught instantly and by
+  name; a 4 KiB write into a 64-byte allocation was not reported by the write,
+  by the `free()` of the corrupted chunk, or by sixty-four allocations
+  afterwards.
+- `ext-ffi` was added to `composer.json`. It had been in the image and in CI
+  since Phase 0 but was never declared, which only became wrong once Phases 8
+  and 9 made it load-bearing.
+- The bounds check is written as `$offset > $size || $length > $size - $offset`
+  rather than `$offset + $length > $size`, because the latter overflows for a
+  large offset and wraps negative — turning the guard into a guarantee of the
+  access it exists to stop. There is a test that passes `PHP_INT_MAX`.
 
 ---
 

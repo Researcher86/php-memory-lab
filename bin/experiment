@@ -37,6 +37,9 @@ $scripts = [
     'mmap:lazy' => __DIR__ . '/../experiments/09-mmap/lazy-loading.php',
     'mmap:modes' => __DIR__ . '/../experiments/09-mmap/shared-vs-private.php',
     'mmap:failures' => __DIR__ . '/../experiments/09-mmap/failure-modes.php',
+    'ffi:allocation' => __DIR__ . '/../experiments/10-ffi/native-allocation.php',
+    'ffi:comparison' => __DIR__ . '/../experiments/10-ffi/buffer-comparison.php',
+    'ffi:unsafe' => __DIR__ . '/../experiments/10-ffi/unsafe-ownership.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
@@ -69,7 +72,10 @@ $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "  ring:failures           bad magic, bad version, a killed writer (Phase 7)\n"
     . "  mmap:lazy               a mapping is a promise, not a read (Phase 8)\n"
     . "  mmap:modes              MAP_SHARED vs MAP_PRIVATE, PSS, msync (Phase 8)\n"
-    . "  mmap:failures           bounds, double unmap, SIGBUS on truncation (Phase 8)\n";
+    . "  mmap:failures           bounds, double unmap, SIGBUS on truncation (Phase 8)\n"
+    . "  ffi:allocation          native memory the PHP counters cannot see (Phase 9)\n"
+    . "  ffi:comparison          PHP string / array / FFI buffer / mmap (Phase 9)\n"
+    . "  ffi:unsafe              double free, use-after-free, overflow (Phase 9)\n";
 
 $command = $argv[1] ?? null;
 
