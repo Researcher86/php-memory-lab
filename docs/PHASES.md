@@ -315,7 +315,7 @@ tests. Multiline/fork tests are integration-tested where deterministic.
 
 ---
 
-## Phase 5 — Process IPC with Unix Sockets
+## Phase 5 — Process IPC with Unix Sockets ✅
 
 ### Goal
 
@@ -323,37 +323,58 @@ A baseline IPC implementation to compare against shared memory later.
 
 ### Tasks
 
-- [ ] 5.1 Unix socket pair
-  - `socket_create_pair(AF_UNIX, SOCK_STREAM, 0, $sockets)`
-  - `src/Ipc/SocketChannel.php` with `send()` / `receive()`
-- [ ] 5.2 Message framing
+- [x] 5.1 Unix socket pair
+  - `socket_create_pair(AF_UNIX, SOCK_STREAM, 0, $sockets)` behind
+    `SocketChannel::pair()`, so the two ends can be split across a `fork()`
+  - `src/Ipc/SocketChannel.php` with `send()` / `receive()` /
+    `receiveOrNull()` / `close()`
+- [x] 5.2 Message framing
   - `[4-byte length][payload]`
-  - handle partial reads/writes, multiple messages in one read, one
+  - handles partial reads/writes, multiple messages in one read, one
     message split across reads, empty and large payloads, invalid
     lengths, EOF, broken pipes, unexpected child termination
   - `src/Ipc/MessageFramer.php`
-- [ ] 5.3 IPC experiments
-  - payloads `0 B` … `10 MB`; round-trip latency, throughput, blocking
-    and non-blocking sockets, one-way and request-response
+- [x] 5.3 IPC experiments
+  - payloads `0 B` … `10 MiB`; round-trip latency, throughput, blocking
+    (`receive()`) against non-blocking (`receiveOrNull()`) reads
   - `experiments/06-process-ipc/socket-latency.php`
-- [ ] 5.4 Serialization comparison
-  - JSON, `serialize()`, custom binary, raw strings
-  - encoding/decoding time, payload size, round-trip, allocations
-- [ ] 5.5 Backpressure experiment
-  - producer faster than consumer; socket buffer growth, blocking,
-    producer waiting time, message loss if the producer is terminated
+- [x] 5.4 Serialization comparison
+  - JSON, `serialize()`, CSV, a packed binary format, and a raw string as
+    the floor; encode/decode time, payload size, round-trip, peak allocation
+  - `experiments/06-process-ipc/serialization-compare.php`
+- [x] 5.5 Backpressure experiment
+  - producer faster than consumer; how much the kernel buffers absorb before
+    `send()` starts waiting, how much of the producer's life is spent
+    blocked, and what happens to sent messages when the producer is SIGKILLed
+  - `experiments/06-process-ipc/backpressure.php`
 
 ### Definition of Done
 
-- `SocketChannel` handles all framing edge cases.
-- Measured latency/throughput comparison against shared memory (Phase 6).
+- `SocketChannel` handles every framing edge case listed above, each covered
+  by a test.
+- Latency and throughput are measured per payload size; the comparison
+  *against* shared memory follows in Phase 6, which reuses these numbers.
 
 ### Tests
 
 - `tests/Ipc/MessageFramerTest.php`
-  - partial reads, partial writes, multiple messages per read, invalid
-    lengths, empty payloads, EOF
-- Integration: real socket pair round-trip (planned).
+  - header layout, empty payloads, the frame-size limit in both directions,
+    incomplete headers
+- `tests/Ipc/SocketChannelTest.php`
+  - both directions, empty payload, three frames in one write, a frame
+    spanning several reads, a partial frame seen by `receiveOrNull()`, a
+    clean close, a close mid-frame, a write to a departed peer, I/O on a
+    closed channel, and a real round trip across `pcntl_fork()`
+
+### Notes
+
+- The `Channel` interface was dropped: one implementation, no second one in
+  sight, and the ring buffer of Phase 7 has different semantics rather than
+  the same ones over another transport.
+- `MessageFramer` deliberately does not reassemble frames. Only something
+  holding the stream knows whether the rest of a payload has arrived, so
+  reassembly lives in `SocketChannel`'s buffer and the framer stays two pure
+  functions.
 
 ---
 

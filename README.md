@@ -94,13 +94,13 @@ Every file below is standalone enough to open cold.
 | raw bytes become readable human sizes | [`src/Memory/ByteFormatter.php`](src/Memory/ByteFormatter.php) |
 | arrays, strings, objects and GC actually cost memory | `experiments/02-arrays-and-strings/` · `experiments/03-garbage-collection/` (Phase 2) |
 | `fork()` shares and later splits pages (CoW) | `experiments/04-fork/` · `experiments/05-copy-on-write/` (Phases 3–4) |
-| messages stay framed over a byte stream | `src/Ipc/SocketChannel.php` · `src/Ipc/MessageFramer.php` (Phase 5) |
+| messages stay framed over a byte stream | [`src/Ipc/SocketChannel.php`](src/Ipc/SocketChannel.php) · [`src/Ipc/MessageFramer.php`](src/Ipc/MessageFramer.php) |
 | SysV shared memory differs from raw bytes, and why it races | `src/Ipc/SharedMemorySegment.php` · `src/Ipc/Semaphore.php` (Phase 6) |
 | a fixed-size shared ring buffer synchronizes one producer/consumer | `src/Ipc/RingBuffer.php` (Phase 7) |
 | files map into the address space | `src/Native/MappedFile.php` (Phase 8) |
 | native memory lives outside the engine, and what that unlocks | `src/Native/FfiBuffer.php` (Phase 9) |
 
-Anything marked *Phase N* follows the roadmap below; the `/proc` layer is
+Anything marked *Phase N* follows the roadmap below; everything linked is
 built and test-ready today.
 
 ---
@@ -326,9 +326,9 @@ and a child that dies mid-frame.
 
 ## Phase 5 — Process IPC with Unix Sockets
 
-* [ ] `SocketChannel` over `socket_create_pair()`
-* [ ] length-prefixed framing (partial reads/writes, EOF, broken pipes)
-* [ ] latency/throughput experiments (`0 B` … `10 MB`), serialization comparison, backpressure
+* [x] `SocketChannel` over `socket_create_pair()`, blocking and polling reads
+* [x] length-prefixed framing (partial reads/writes, EOF, broken pipes)
+* [x] latency/throughput experiments (`0 B` … `10 MiB`), serialization comparison, backpressure
 
 ## Phase 6 — SysV Shared Memory and Semaphores
 

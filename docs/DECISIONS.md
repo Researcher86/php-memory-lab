@@ -65,3 +65,23 @@ was made. New decisions get appended with a date.
 - Experiments live at `experiments/NN-name/`, benchmarks at `benchmarks/`,
   measured results in `var/results/`, all per the plan and unchanged by the
   restructure.
+
+## 2026-09-13 — Phase 5: no `Channel` interface, and the framer does not reassemble
+
+- `SocketChannel` is the only channel, and the ring buffer of Phase 7 will
+  have different semantics rather than the same ones over another transport,
+  so the one-implementation `Channel` interface was dropped instead of being
+  carried forward.
+- `MessageFramer` keeps only `encode()` and `decodeHeader()`. Reassembling a
+  frame requires knowing whether the rest of the payload has arrived, which
+  only the owner of the stream knows, so that buffer lives in
+  `SocketChannel`. A framer with an unused `decode()` half is a trap: it
+  looks like the code path the channel uses and is not.
+- `send()` blocks and there is no non-blocking write. The block is the
+  measurement - `experiments/06-process-ipc/backpressure.php` reports how
+  much the kernel buffers absorb before a producer feels its consumer.
+- `MSG_NOSIGNAL` is passed through a local variable because PHPStan's
+  `socket_send()` stub does not list it among the allowed flag constants,
+  though PHP defines it and Linux honours it. Without the flag, writing to a
+  departed peer raises SIGPIPE and kills the process before the error can be
+  reported.

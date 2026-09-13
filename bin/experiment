@@ -25,6 +25,9 @@ $scripts = [
     'cow:many-writes' => __DIR__ . '/../experiments/05-copy-on-write/many-writes.php',
     'cow:rewrite' => __DIR__ . '/../experiments/05-copy-on-write/rewrite-array.php',
     'cow:multiple-children' => __DIR__ . '/../experiments/05-copy-on-write/multiple-children.php',
+    'ipc:socket' => __DIR__ . '/../experiments/06-process-ipc/socket-latency.php',
+    'ipc:serialization' => __DIR__ . '/../experiments/06-process-ipc/serialization-compare.php',
+    'ipc:backpressure' => __DIR__ . '/../experiments/06-process-ipc/backpressure.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
@@ -45,7 +48,10 @@ $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "  cow:single-write        child writes one element (Phase 4)\n"
     . "  cow:many-writes         1/1k/10k/1M-element writes (Phase 4)\n"
     . "  cow:rewrite             in-place vs fresh array rewrite (Phase 4)\n"
-    . "  cow:multiple-children   4 children, disjoint regions (Phase 4)\n";
+    . "  cow:multiple-children   4 children, disjoint regions (Phase 4)\n"
+    . "  ipc:socket              socket round-trip, 0 B to 10 MiB (Phase 5)\n"
+    . "  ipc:serialization       json / serialize / csv / binary / raw (Phase 5)\n"
+    . "  ipc:backpressure        a producer faster than its consumer (Phase 5)\n";
 
 $command = $argv[1] ?? null;
 
