@@ -68,7 +68,7 @@ Real backend applications
 
 ---
 
-## Phase 0 — Project Setup
+## Phase 0 — Project Setup ✅
 
 ### Goal
 
