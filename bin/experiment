@@ -20,6 +20,11 @@ $scripts = [
     'process:fork-with-data' => __DIR__ . '/../experiments/04-fork/fork-with-data.php',
     'process:multiple-forks' => __DIR__ . '/../experiments/04-fork/fork-many.php',
     'process:lifecycle' => __DIR__ . '/../experiments/04-fork/process-lifecycle.php',
+    'cow:readonly' => __DIR__ . '/../experiments/05-copy-on-write/read-only.php',
+    'cow:single-write' => __DIR__ . '/../experiments/05-copy-on-write/single-write.php',
+    'cow:many-writes' => __DIR__ . '/../experiments/05-copy-on-write/many-writes.php',
+    'cow:rewrite' => __DIR__ . '/../experiments/05-copy-on-write/rewrite-array.php',
+    'cow:multiple-children' => __DIR__ . '/../experiments/05-copy-on-write/multiple-children.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
@@ -35,7 +40,12 @@ $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "  process:fork            parent and child measured separately (Phase 3)\n"
     . "  process:fork-with-data  1M-int array inherited read-only (Phase 3)\n"
     . "  process:multiple-forks  1/2/4/8/16 children, RSS and PSS (Phase 3)\n"
-    . "  process:lifecycle       exit codes, zombies, signals (Phase 3)\n";
+    . "  process:lifecycle       exit codes, zombies, signals (Phase 3)\n"
+    . "  cow:readonly            child reads inherited 1M-int array (Phase 4)\n"
+    . "  cow:single-write        child writes one element (Phase 4)\n"
+    . "  cow:many-writes         1/1k/10k/1M-element writes (Phase 4)\n"
+    . "  cow:rewrite             in-place vs fresh array rewrite (Phase 4)\n"
+    . "  cow:multiple-children   4 children, disjoint regions (Phase 4)\n";
 
 $command = $argv[1] ?? null;
 

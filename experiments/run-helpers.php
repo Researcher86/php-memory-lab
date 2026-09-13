@@ -6,6 +6,7 @@ use App\Memory\ByteFormatter;
 use App\Memory\MemoryDiff;
 use App\Memory\MemoryReporter;
 use App\Memory\MemorySnapshot;
+use App\Memory\SmapsRollup;
 
 /**
  * Shared output helpers for experiment scripts.
@@ -63,6 +64,18 @@ function experiment_delta(string $label, MemoryDiff $diff): void
 function experiment_note(string $message): void
 {
     \fwrite(STDOUT, \sprintf("\nNote: %s\n", $message));
+}
+
+function experiment_smaps(string $label, SmapsRollup $rollup): void
+{
+    \fwrite(STDOUT, \sprintf(
+        "%s: RSS %s | PSS %s | Shared_Dirty %s | Private_Dirty %s\n",
+        $label,
+        ByteFormatter::format($rollup->rss),
+        ByteFormatter::format($rollup->pss),
+        ByteFormatter::format($rollup->sharedDirty),
+        ByteFormatter::format($rollup->privateDirty),
+    ));
 }
 
 function experiment_context(): void

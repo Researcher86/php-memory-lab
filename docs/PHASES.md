@@ -272,7 +272,7 @@ proven by the four recorded experiments plus `docs/fork-and-cow.md`.
 
 ---
 
-## Phase 4 — Copy-on-Write Experiments
+## Phase 4 — Copy-on-Write Experiments ✅
 
 ### Goal
 
@@ -281,21 +281,25 @@ private — the difference between PHP-level and Linux-level CoW.
 
 ### Tasks
 
-- [ ] 4.1 Read-only child
+- [x] 4.1 Read-only child
   - child reads an inherited structure, pages stay shared; compare PSS
-- [ ] 4.2 Modify one element
+  - `experiments/05-copy-on-write/read-only.php`
+- [x] 4.2 Modify one element
   - `$data[0] = 999;` in the child; measure RSS, private dirty memory
   - `experiments/05-copy-on-write/single-write.php`
-- [ ] 4.3 Modify many elements
-  - one element vs 100 000 elements; RSS/PSS deltas, private dirty
-    memory, execution time, page faults if available
-- [ ] 4.4 Rewrite the entire array
+- [x] 4.3 Modify many elements
+  - one vs 1_000 vs 10_000 vs 1_000_000 writes; RSS/PSS deltas, private
+    dirty memory, execution time, page faults if available
+  - `experiments/05-copy-on-write/many-writes.php`
+- [x] 4.4 Rewrite the entire array
   - in-place `$data[$key] = $value + 1;` vs `$data = range(...)`
   - explain why modifying and replacing behave differently
-- [ ] 4.5 Multiple children with different regions
+  - `experiments/05-copy-on-write/rewrite-array.php`
+- [x] 4.5 Multiple children with different regions
   - four children, each touching `elements 0–249,999` … `750,000–999,999`
   - parent/child private memory, shared memory, PSS
-- [ ] 4.6 `docs/fork-and-cow.md`
+  - `experiments/05-copy-on-write/multiple-children.php`
+- [x] 4.6 `docs/fork-and-cow.md`
   - virtual address spaces, page tables, page faults, private dirty
     pages, why RSS misleads, why PSS helps, PHP CoW vs Linux page CoW
 

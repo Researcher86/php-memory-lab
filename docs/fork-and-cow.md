@@ -101,6 +101,100 @@ signals a kill, `pcntl_wtermsig()` names the signal. A zombie's `State` line in
 5. **Every child must be reaped** — an unreaped child is a zombie holding a
    pid, and the parent must `waitpid()` it off.
 
+## Write side: RSS does not move, Private_Dirty does
+
+CoW is invisible to RSS. A shared page stays resident whether it is shared
+or private, so RSS does not change when one writer privatises it. The
+signal lives in `smaps_rollup`: the writer sees `Private_Dirty` rise and
+`Shared_Dirty` fall by the same amount. All Phase 4 numbers below are the
+child's view after writing the inherited 1M-integer array (≈4 MiB of
+pages).
+
+### One element
+
+```text
+$ make experiment ARGS="cow:single-write"
+child BEFORE writing one element: Shared_Dirty 25.59 MiB | Private_Dirty  604.00 KiB
+child AFTER  writing $data[0] = 999: Shared_Dirty 25.55 MiB | Private_Dirty 644.00 KiB
+child Private_Dirty delta: +40 KiB
+parent verifies data still intact: $data[0] = 0   <- parent untouched
+```
+
+One write privatises the page(s) holding that bucket — tens of kilobytes,
+not megabytes. Keyword: **ten of kilobytes, not the array**. The parent's
+copy is untouched; the child sees `999`, the parent still sees `0`.
+
+### One, 1k, 10k, 1M element writes
+
+```text
+$ make experiment ARGS="cow:many-writes"
+[1 write]        time  1.91 ms | Private_Dirty +132.00 KiB  | Shared_Dirty -104.00 KiB
+[~1_000 writes]  time  3.51 ms | Private_Dirty +4.03 MiB    | Shared_Dirty -4.00 MiB
+[~10_000 writes] time  1.96 ms | Private_Dirty +528.00 KiB  | Shared_Dirty -500.00 KiB
+[1_000_000 writes] time 51.43 ms | Private_Dirty +15.39 MiB | Shared_Dirty -15.36 MiB
+RSS does not move in any row (COW keeps the page resident)
+```
+
+Cost is per **page** written, and pages contain many buckets: 1 write
+touches the page that the first ~hundred buckets live on; 1k writes scatter
+over ~1000 pages (≈4 MiB). Writes to buckets that share a page coalesce
+into one split, which is why the 10k row pays only ~528 KiB. The buckets
+are not copied one by one — a whole 4 KiB page is flung apart at the first
+write into it.
+
+### Rewrite strategy changes the price
+
+```text
+$ make experiment ARGS="cow:rewrite"
+in-place: $data[$key] ++      time  39.02 ms | Private_Dirty +15.27 MiB
+fresh:    $data = range(...)  time   3.58 ms | Private_Dirty +16.00 MiB
+```
+
+In-place edits the *shared* pages, so the kernel has to copy each one the
+moment the child writes it (about 4 MiB of real page copies). Fresh
+`range()` builds a brand-new private array in the child — no shared page is
+ever touched; the writes all land on pages the child has always owned
+(limiting: the freed shared pages are reused by the allocator, but no
+existing shared page is *merely copied*). Data shape and work are similar;
+the memory accounting could hardly be more different.
+
+### Disjoint regions: the best of both worlds
+
+```text
+$ make experiment ARGS="cow:multiple-children"
+parent BEFORE forking:  Private_Dirty 26.16 MiB | Shared_Dirty 0 B
+each of 4 children wrote 250k buckets -> Private_Dirty ~4.40 MiB each
+parent WHILE children rewrite disjoint regions:
+  Shared_Dirty 25.54 MiB | PSS 14.03 MiB | RSS 44.68 MiB (flat)
+parent AFTER all children exited: PSS 35.71 MiB (restored)
+```
+
+Give four children four disjunct quarters of the array and each child
+privatises roughly a quarter (≈4.4 MiB private) — nobody re-copies data
+another child already split, and the parent's `Shared_Dirty` barely moves.
+Partitioned writes are the reason fork-from-a-warmed-service is so cheap:
+each worker owns its slice of the shared tree.
+
+### Rule updates from Phase 4
+
+1. **RSS is the wrong meter for CoW.** Track `Private_Dirty`/`Shared_Dirty`.
+2. **The tax is per page, not per element.** Buckets on one page share one
+   split; ~128 buckets/page is why 1k writes ≠ 1k page copies.
+3. **Read-fork stays free** — a child that only reads inherits ~zero
+   `Private_Dirty` and shares every page.
+4. **Design children to write disjoint regions** if they must grow their own
+   view of a shared structure.
+
+## The fork() → child-exits → parent-waits lifecycle
+
+| stage | what is visible | who owns it |
+|---|---|---|
+| `pcntl_fork()` | page-table clone, zero data copies | parent + child share pages |
+| child reads | shared pages, `Private_Dirty` flat | nobody new |
+| child writes | first write splits one or a few pages | only the writer |
+| child exits | becomes zombie (`State: Z`) | zombie holds pid + exit state |
+| `pcntl_waitpid()` | child reaped; exit status readable | parent |
+
 ## Reproduce
 
 ```bash
@@ -108,9 +202,13 @@ make experiment ARGS="process:fork"
 make experiment ARGS="process:fork-with-data"
 make experiment ARGS="process:multiple-forks"
 make experiment ARGS="process:lifecycle"
+
+make experiment ARGS="cow:readonly"
+make experiment ARGS="cow:single-write"
+make experiment ARGS="cow:many-writes"
+make experiment ARGS="cow:rewrite"
+make experiment ARGS="cow:multiple-children"
 ```
 
 Every printed `Context:` line is deliberate: values depend on the PHP
 version, the allocator, and the container limits — not universal truth.
-Phase 4 continues this document with the write-side measurements (single
-write, many writes, full rewrite, per-region writes).

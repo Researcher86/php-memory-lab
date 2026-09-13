@@ -320,9 +320,9 @@ and a child that dies mid-frame.
 
 ## Phase 4 — Copy-on-Write Experiments
 
-* [ ] read-only child, single write, many writes, full rewrite
-* [ ] four children writing different regions
-* [ ] `docs/fork-and-cow.md`
+* [x] read-only child, single write, many writes, full rewrite
+* [x] four children writing different regions
+* [x] `docs/fork-and-cow.md` (finalized)
 
 ## Phase 5 — Process IPC with Unix Sockets
 
