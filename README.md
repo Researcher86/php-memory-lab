@@ -314,9 +314,9 @@ and a child that dies mid-frame.
 
 ## Phase 3 — Processes and `fork()`
 
-* [ ] basic fork, fork with a 1M-element array
-* [ ] one / two / four / eight / sixteen children (RSS, shared, PSS)
-* [ ] process lifecycle: zombies, `waitpid`, signals, exit codes
+* [x] basic fork, fork with a 1M-element array
+* [x] one / two / four / eight / sixteen children (RSS, shared, PSS)
+* [x] process lifecycle: zombies, `waitpid`, signals, exit codes
 
 ## Phase 4 — Copy-on-Write Experiments
 
@@ -458,7 +458,7 @@ runtime is built from.
 | `php-worker-pool` | managing reusable worker processes |
 | `php-memory-lab` | memory, virtual memory, processes, IPC, native memory |
 | `php-job-queue` | reliable asynchronous job processing |
-| `php-mini-redis` | event-driven in-memory server |
+| `php-mini-cache` | event-driven in-memory server |
 | `php-mini-http-server` | HTTP server and event loop fundamentals |
 
 ---

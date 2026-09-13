@@ -233,7 +233,7 @@ experiments themselves are measured, printed, and interpreted in
 
 ---
 
-## Phase 3 — Processes and `fork()`
+## Phase 3 — Processes and `fork()` ✅
 
 ### Goal
 
@@ -241,18 +241,22 @@ Understand process creation and memory inheritance between parent and child.
 
 ### Tasks
 
-- [ ] 3.1 Basic fork
+- [x] 3.1 Basic fork
   - `pcntl_fork()`, exit statuses, parent/child PIDs
   - parent RSS and child RSS measured separately
-- [ ] 3.2 Fork with allocated memory
+  - `experiments/04-fork/basic-fork.php`
+- [x] 3.2 Fork with allocated memory
   - `range(1, 1_000_000)` before forking
   - `$reporter->diff()` in parent and child
-- [ ] 3.3 Multiple children
+  - `experiments/04-fork/fork-with-data.php`
+- [x] 3.3 Multiple children
   - one / two / four / eight / sixteen children
   - fork time, total RSS, parent/child private memory, shared memory, PSS
-- [ ] 3.4 Process lifecycle
+  - `experiments/04-fork/fork-many.php`
+- [x] 3.4 Process lifecycle
   - normal exit, non-zero exit, delayed `pcntl_waitpid()`, zombies,
     signals, child termination
+  - `experiments/04-fork/process-lifecycle.php`
 
 ### Definition of Done
 
@@ -263,7 +267,8 @@ Understand process creation and memory inheritance between parent and child.
 ### Tests
 
 Integration tests cover parent/child communication and process lifecycle
-(planned under `tests/Ipc/` as those primitives land).
+(planned under `tests/Ipc/` as those primitives land). Phase 3 itself is
+proven by the four recorded experiments plus `docs/fork-and-cow.md`.
 
 ---
 

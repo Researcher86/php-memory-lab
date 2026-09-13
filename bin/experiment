@@ -16,6 +16,10 @@ $scripts = [
     'memory:nested-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/nested-arrays.php',
     'memory:objects' => __DIR__ . '/../experiments/02-arrays-and-strings/objects.php',
     'memory:gc' => __DIR__ . '/../experiments/03-garbage-collection/gc.php',
+    'process:fork' => __DIR__ . '/../experiments/04-fork/basic-fork.php',
+    'process:fork-with-data' => __DIR__ . '/../experiments/04-fork/fork-with-data.php',
+    'process:multiple-forks' => __DIR__ . '/../experiments/04-fork/fork-many.php',
+    'process:lifecycle' => __DIR__ . '/../experiments/04-fork/process-lifecycle.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
@@ -27,7 +31,11 @@ $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "  memory:sparse-arrays    gaps -> hash table (Phase 2)\n"
     . "  memory:nested-arrays    rows, depth, references (Phase 2)\n"
     . "  memory:objects          object overhead (Phase 2)\n"
-    . "  memory:gc               refcounts, cycles (Phase 2)\n";
+    . "  memory:gc               refcounts, cycles (Phase 2)\n"
+    . "  process:fork            parent and child measured separately (Phase 3)\n"
+    . "  process:fork-with-data  1M-int array inherited read-only (Phase 3)\n"
+    . "  process:multiple-forks  1/2/4/8/16 children, RSS and PSS (Phase 3)\n"
+    . "  process:lifecycle       exit codes, zombies, signals (Phase 3)\n";
 
 $command = $argv[1] ?? null;
 
