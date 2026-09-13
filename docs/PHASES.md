@@ -769,7 +769,7 @@ One consistent way to run any experiment.
 
 ### Notes
 
-- `experiments/run-helpers.php` is gone. Its global functions are methods on
+- The old `run-helpers.php` under `experiments/` is gone. Its global functions are methods on
   `Output` now, which is the difference between a forked child writing through
   an instance it inherited — visible in the code — and one writing through a
   global.
@@ -787,7 +787,7 @@ One consistent way to run any experiment.
 
 ---
 
-## Phase 12 — Documentation
+## Phase 12 — Documentation ✅
 
 ### Goal
 
@@ -796,27 +796,27 @@ Turn raw experiment output into explanations that answer *what*, *why*, and
 
 ### Tasks
 
-- [ ] `docs/memory-model.md`
-  - zvals, refcounting, PHP CoW, hash tables, packed/associative arrays,
-    arenas, allocator behavior, GC, object/string overhead
-- [ ] `docs/php-memory-vs-rss.md`
-  - `memory_get_usage()`, peak, RSS, virtual, shared, private, PSS, why
-    measurements differ, freed memory in RSS, RSS double-counting
-- [ ] `docs/fork-and-cow.md`
-  - `fork()`, address spaces, page tables, shared pages, page faults,
-    private dirty pages, accounting, PHP CoW vs Linux CoW
-- [ ] `docs/ipc-comparison.md`
-  - Unix socket, SysV queue, SysV shared memory, semaphore, `mmap()`, FFI
-    across purpose / copying / synchronization / complexity
-- [ ] `docs/shared-memory.md`
-  - addressability, synchronization, visibility, races, atomicity,
-    cleanup, crash consistency, segment lifecycle, stale resources
-- [ ] `docs/mmap.md`
-  - file-backed/anonymous mappings, `MAP_SHARED`/`MAP_PRIVATE`, `msync()`,
-    page faults, persistence, lifetime, truncation
-- [ ] `docs/ffi-memory.md`
-  - pointers, ownership, allocation, deallocation, boundaries, lifetime,
-    undefined behavior, ABI, accounting
+- [x] `docs/memory-model.md` — zvals, refcounting, PHP CoW, hash tables,
+  packed and associative arrays, arenas, allocator behaviour, GC, object and
+  string overhead
+- [x] `docs/php-memory-vs-rss.md` — `memory_get_usage()`, peak, RSS, virtual,
+  shared, private, PSS, why the measurements differ, freed memory staying
+  resident, RSS double-counting
+- [x] `docs/fork-and-cow.md` — `fork()`, address spaces, page tables, shared
+  pages, page faults, private dirty pages, accounting, PHP CoW against Linux
+  CoW
+- [x] `docs/ipc-comparison.md` — Unix socket, SysV queue, SysV shared memory,
+  semaphore, `mmap`, FFI across purpose, copying, synchronization, failure
+  behaviour and cleanup, with the measurement that decides most of it
+- [x] `docs/shared-memory.md` — addressability, synchronization, visibility,
+  races, atomicity, cleanup, crash consistency, segment lifecycle, stale
+  resources, and the Phase 7 ring buffer
+- [x] `docs/mmap.md` — file-backed mappings, `MAP_SHARED`/`MAP_PRIVATE`,
+  `msync()`, page faults, persistence, lifetime, truncation
+- [x] `docs/ffi-memory.md` — pointers, ownership, allocation, deallocation,
+  boundaries, lifetime, undefined behaviour, ABI, accounting
+- [x] `docs/BENCHMARKS.md` — how the harness runs and how to read a report
+  (added with Phase 10)
 
 ### Definition of Done
 
@@ -825,8 +825,23 @@ Turn raw experiment output into explanations that answer *what*, *why*, and
 
 ### Tests
 
-Documentation phases are validated by review against the measurements they
-describe; the automated suite itself stays green.
+- `tests/DocumentationTest.php` — every document linked from README, every
+  relative link resolving, every path mentioned in backticks existing, every
+  `make experiment ARGS="…"` naming a command the registry still answers to,
+  and every `make benchmark ARGS="…"` naming a suite that exists
+
+### Notes
+
+- The SysV message queue is the one mechanism in the comparison that was not
+  built. It is the socket's semantics with a numeric key instead of a
+  descriptor, and having built the socket there was nothing left for it to
+  demonstrate — `ipc-comparison.md` says so rather than leaving a gap.
+- Anchors into headings that end in ✅ are not portable across Markdown
+  renderers, so cross-document links point at the file rather than at a phase
+  heading.
+- The documentation checks are a test rather than a review step because eyes
+  are what miss a renamed file, and Phase 11 renamed thirty-two of them at
+  once.
 
 ---
 

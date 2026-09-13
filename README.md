@@ -113,9 +113,9 @@ built and test-ready today.
 | **[docs/DECISIONS.md](docs/DECISIONS.md)** | what was decided and why: PHP 8.5, `App\` namespace, no `extension_loaded()` checks, plan folded |
 | **[docs/BENCHMARKS.md](docs/BENCHMARKS.md)** (Phase 10) | how the harness runs, how to read a report, and why no result here is universal |
 | **[docs/memory-model.md](docs/memory-model.md)** (Phase 2) | zvals, refcounting, hash tables, packed arrays, arenas, allocator, GC |
-| **docs/php-memory-vs-rss.md** (Phase 1) | why the two measurements differ, when freed memory stays resident, PSS |
-| **docs/fork-and-cow.md** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
-| **docs/ipc-comparison.md** (Phase 12) | Unix socket vs SysV queue vs shared memory vs semaphore vs `mmap` vs FFI |
+| **[docs/php-memory-vs-rss.md](docs/php-memory-vs-rss.md)** (Phase 1) | why the two measurements differ, when freed memory stays resident, PSS |
+| **[docs/fork-and-cow.md](docs/fork-and-cow.md)** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
+| **[docs/ipc-comparison.md](docs/ipc-comparison.md)** (Phase 12) | Unix socket vs SysV queue vs shared memory vs `mmap` vs FFI: what each copies, synchronizes and leaks |
 | **[docs/shared-memory.md](docs/shared-memory.md)** (Phase 6) | races, atomicity, cleanup, crash consistency, segment lifecycle |
 | **[docs/mmap.md](docs/mmap.md)** (Phase 8) · **[docs/ffi-memory.md](docs/ffi-memory.md)** (Phase 9) | mappings and native ownership, with their hazards |
 | the rest of this file | the concepts, in depth |
@@ -369,8 +369,10 @@ and a child that dies mid-frame.
 
 ## Phase 12 — Documentation
 
-* [ ] `memory-model.md`, `php-memory-vs-rss.md`, `fork-and-cow.md`,
+* [x] `memory-model.md`, `php-memory-vs-rss.md`, `fork-and-cow.md`,
       `ipc-comparison.md`, `shared-memory.md`, `mmap.md`, `ffi-memory.md`
+* [x] every experiment explained against its own measurements; every link, path
+      and command checked by `tests/DocumentationTest.php`
 
 See [docs/PHASES.md](docs/PHASES.md) for the full plan and everything below
 as it is built.

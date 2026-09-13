@@ -134,7 +134,7 @@ related writes leaves the segment half-updated, and the next reader has no
 way to tell. Sockets have no equivalent problem: a message is written whole
 or not at all, and a producer killed after `send()` returns loses nothing,
 because the bytes are already the kernel's
-([Phase 5](PHASES.md#phase-5--process-ipc-with-unix-sockets-)).
+([Phase 5](PHASES.md)).
 
 ## The segment outlives everything that touched it
 

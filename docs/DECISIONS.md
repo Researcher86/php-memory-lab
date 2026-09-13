@@ -198,7 +198,7 @@ was made. New decisions get appended with a date.
   the directory twice in five phases, and `RegistryTest` now loads the whole
   directory on every test run, so a broken descriptor fails in the suite
   rather than the first time that one experiment is run.
-- `experiments/run-helpers.php` and its global functions are replaced by
+- The old `run-helpers.php` under `experiments/` and its global functions are replaced by
   `Output`. A forked child writing through an instance it inherited is visible
   in the code; a forked child writing through a global is a thing to remember.
 - An experiment refuses an option it does not read, and the check lives in
@@ -208,3 +208,19 @@ was made. New decisions get appended with a date.
 - `--format=json` suppresses the prose rather than capturing it. Several
   experiments write from several processes at once, and interleaving that
   inside a JSON string would produce neither readable output nor valid JSON.
+
+## 2026-09-13 — Phase 12: the documentation is checked by a test
+
+- `tests/DocumentationTest.php` verifies that every document is linked from
+  README, every relative link resolves, every path written in backticks
+  exists, and every `make experiment ARGS="…"` in the docs names a command the
+  registry still answers to. Phase 11 renamed thirty-two experiment files in
+  one commit, which is exactly the change a review pass reads past.
+- The SysV message queue is documented as the mechanism this lab did not
+  build, with the reason: it is the socket's semantics with a numeric key
+  instead of a descriptor, and the socket had already demonstrated all of it.
+  A gap in a comparison table is worse than an entry that says "not built, and
+  here is why".
+- Cross-document links point at a file rather than at a phase heading. Phase
+  headings in PHASES.md end in ✅, and anchors generated from a heading with an
+  emoji differ between Markdown renderers.
