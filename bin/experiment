@@ -5,98 +5,117 @@ declare(strict_types=1);
 
 require \dirname(__DIR__) . '/vendor/autoload.php';
 
-// The full experiment CLI lands in phase 11; until then each phase adds its
-// own commands here so its experiments stay reachable through `make experiment`.
-$scripts = [
-    'memory:empty' => __DIR__ . '/../experiments/01-memory-basics/empty.php',
-    'memory:strings' => __DIR__ . '/../experiments/02-arrays-and-strings/strings.php',
-    'memory:packed-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/packed-arrays.php',
-    'memory:associative-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/associative-arrays.php',
-    'memory:sparse-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/sparse-arrays.php',
-    'memory:nested-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/nested-arrays.php',
-    'memory:objects' => __DIR__ . '/../experiments/02-arrays-and-strings/objects.php',
-    'memory:gc' => __DIR__ . '/../experiments/03-garbage-collection/gc.php',
-    'process:fork' => __DIR__ . '/../experiments/04-fork/basic-fork.php',
-    'process:fork-with-data' => __DIR__ . '/../experiments/04-fork/fork-with-data.php',
-    'process:multiple-forks' => __DIR__ . '/../experiments/04-fork/fork-many.php',
-    'process:lifecycle' => __DIR__ . '/../experiments/04-fork/process-lifecycle.php',
-    'cow:readonly' => __DIR__ . '/../experiments/05-copy-on-write/read-only.php',
-    'cow:single-write' => __DIR__ . '/../experiments/05-copy-on-write/single-write.php',
-    'cow:many-writes' => __DIR__ . '/../experiments/05-copy-on-write/many-writes.php',
-    'cow:rewrite' => __DIR__ . '/../experiments/05-copy-on-write/rewrite-array.php',
-    'cow:multiple-children' => __DIR__ . '/../experiments/05-copy-on-write/multiple-children.php',
-    'ipc:socket' => __DIR__ . '/../experiments/06-process-ipc/socket-latency.php',
-    'ipc:serialization' => __DIR__ . '/../experiments/06-process-ipc/serialization-compare.php',
-    'ipc:backpressure' => __DIR__ . '/../experiments/06-process-ipc/backpressure.php',
-    'shm:lifecycle' => __DIR__ . '/../experiments/07-shared-memory/segment-lifecycle.php',
-    'shm:counter' => __DIR__ . '/../experiments/07-shared-memory/protected-counter.php',
-    'shm:race' => __DIR__ . '/../experiments/07-shared-memory/race-condition.php',
-    'ring:throughput' => __DIR__ . '/../experiments/08-ring-buffer/throughput.php',
-    'ring:pacing' => __DIR__ . '/../experiments/08-ring-buffer/pacing.php',
-    'ring:failures' => __DIR__ . '/../experiments/08-ring-buffer/failure-modes.php',
-    'mmap:lazy' => __DIR__ . '/../experiments/09-mmap/lazy-loading.php',
-    'mmap:modes' => __DIR__ . '/../experiments/09-mmap/shared-vs-private.php',
-    'mmap:failures' => __DIR__ . '/../experiments/09-mmap/failure-modes.php',
-    'ffi:allocation' => __DIR__ . '/../experiments/10-ffi/native-allocation.php',
-    'ffi:comparison' => __DIR__ . '/../experiments/10-ffi/buffer-comparison.php',
-    'ffi:unsafe' => __DIR__ . '/../experiments/10-ffi/unsafe-ownership.php',
-];
+use App\Experiment\ExperimentRunner;
+use App\Experiment\Options;
+use App\Experiment\Output;
+use App\Experiment\Registry;
 
-$usage = "Usage: php bin/experiment <experiment>\n\n"
-    . "Available experiments:\n"
-    . "  memory:empty            baseline process memory (Phase 1)\n"
-    . "  memory:strings          string cost, COW (Phase 2)\n"
-    . "  memory:packed-arrays    vs append vs array_fill (Phase 2)\n"
-    . "  memory:associative-arrays  string vs numeric keys (Phase 2)\n"
-    . "  memory:sparse-arrays    gaps -> hash table (Phase 2)\n"
-    . "  memory:nested-arrays    rows, depth, references (Phase 2)\n"
-    . "  memory:objects          object overhead (Phase 2)\n"
-    . "  memory:gc               refcounts, cycles (Phase 2)\n"
-    . "  process:fork            parent and child measured separately (Phase 3)\n"
-    . "  process:fork-with-data  1M-int array inherited read-only (Phase 3)\n"
-    . "  process:multiple-forks  1/2/4/8/16 children, RSS and PSS (Phase 3)\n"
-    . "  process:lifecycle       exit codes, zombies, signals (Phase 3)\n"
-    . "  cow:readonly            child reads inherited 1M-int array (Phase 4)\n"
-    . "  cow:single-write        child writes one element (Phase 4)\n"
-    . "  cow:many-writes         1/1k/10k/1M-element writes (Phase 4)\n"
-    . "  cow:rewrite             in-place vs fresh array rewrite (Phase 4)\n"
-    . "  cow:multiple-children   4 children, disjoint regions (Phase 4)\n"
-    . "  ipc:socket              socket round-trip, 0 B to 10 MiB (Phase 5)\n"
-    . "  ipc:serialization       json / serialize / csv / binary / raw (Phase 5)\n"
-    . "  ipc:backpressure        a producer faster than its consumer (Phase 5)\n"
-    . "  shm:lifecycle           serialization, size limits, stale segments (Phase 6)\n"
-    . "  shm:counter             a semaphore-protected counter (Phase 6)\n"
-    . "  shm:race                lost updates at 1/2/4/8/16 writers (Phase 6)\n"
-    . "  ring:throughput         ring buffer vs socket vs no lock (Phase 7)\n"
-    . "  ring:pacing             full, empty, and the cost of polling (Phase 7)\n"
-    . "  ring:failures           bad magic, bad version, a killed writer (Phase 7)\n"
-    . "  mmap:lazy               a mapping is a promise, not a read (Phase 8)\n"
-    . "  mmap:modes              MAP_SHARED vs MAP_PRIVATE, PSS, msync (Phase 8)\n"
-    . "  mmap:failures           bounds, double unmap, SIGBUS on truncation (Phase 8)\n"
-    . "  ffi:allocation          native memory the PHP counters cannot see (Phase 9)\n"
-    . "  ffi:comparison          PHP string / array / FFI buffer / mmap (Phase 9)\n"
-    . "  ffi:unsafe              double free, use-after-free, overflow (Phase 9)\n";
+$registry = new Registry(\dirname(__DIR__) . '/experiments');
+$runner = new ExperimentRunner($registry);
 
-$command = $argv[1] ?? null;
+$arguments = \array_slice($argv, 1);
+$name = null;
+$raw = [];
+$format = 'text';
+$outputPath = null;
 
-if ($command === null) {
-    \fwrite(STDOUT, $usage);
+foreach ($arguments as $argument) {
+    if (\preg_match('/^--([a-z-]+)=(.*)$/', $argument, $matches) === 1) {
+        [, $option, $value] = $matches;
+
+        // --format and --output belong to the CLI; everything else is the
+        // experiment's, and Options is what decides whether it exists.
+        match ($option) {
+            'format' => $format = $value,
+            'output' => $outputPath = $value,
+            default => $raw[$option] = $value,
+        };
+
+        continue;
+    }
+
+    if ($name === null && !\str_starts_with($argument, '-')) {
+        $name = $argument;
+
+        continue;
+    }
+
+    fail(\sprintf('Unrecognised argument: %s', $argument), $registry);
+}
+
+if ($name === null) {
+    \fwrite(STDOUT, usage($registry));
 
     exit(1);
 }
 
-$script = $scripts[$command] ?? null;
+if (!$registry->has($name)) {
+    fail(\sprintf('Unknown experiment: %s', $name), $registry);
+}
 
-if ($script === null) {
-    \fwrite(STDERR, "Unknown experiment: {$command}\n\n" . $usage);
+if (!\in_array($format, ['text', 'json'], true)) {
+    fail(\sprintf('Unknown format: %s (text or json)', $format), $registry);
+}
+
+try {
+    $options = Options::fromStrings($raw);
+} catch (InvalidArgumentException $e) {
+    fail($e->getMessage(), $registry);
+}
+
+// In JSON mode the prose is suppressed rather than captured: an experiment
+// that forks children writes from several processes at once, and interleaved
+// output inside a JSON string would be neither readable nor valid.
+$output = new Output(STDOUT, quiet: $format === 'json');
+
+try {
+    $result = $runner->run($name, $options, $output);
+} catch (InvalidArgumentException $e) {
+    fail($e->getMessage(), $registry);
+}
+
+$rendered = $format === 'json'
+    ? \json_encode($result->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n"
+    : '';
+
+if ($outputPath !== null) {
+    if (\file_put_contents($outputPath, $rendered) === false) {
+        \fwrite(STDERR, \sprintf("Unable to write %s\n", $outputPath));
+
+        exit(1);
+    }
+
+    \fwrite(STDERR, \sprintf("wrote %s\n", $outputPath));
+
+    exit(0);
+}
+
+\fwrite(STDOUT, $rendered);
+
+function usage(Registry $registry): string
+{
+    $usage = "Usage: php bin/experiment <experiment> [options]\n\nExperiments:\n";
+
+    foreach ($registry->all() as $name => $experiment) {
+        $usage .= \sprintf("  %-26s %s\n", $name, $experiment->description);
+    }
+
+    $usage .= "\nCommon options:\n";
+
+    foreach (Options::KNOWN as $option => $description) {
+        $usage .= \sprintf("  --%-24s %s\n", $option . '=N', $description);
+    }
+
+    $usage .= \sprintf("  --%-24s %s\n", 'format=text|json', 'prose for a reader, or the measurements as JSON');
+    $usage .= \sprintf("  --%-24s %s\n", 'output=PATH', 'write the JSON result to a file');
+    $usage .= "\nAn experiment refuses an option it does not use; its own list is in its file.\n";
+
+    return $usage;
+}
+
+function fail(string $message, Registry $registry): never
+{
+    \fwrite(STDERR, $message . "\n\n" . usage($registry));
 
     exit(1);
 }
-
-if (!\is_file($script)) {
-    \fwrite(STDERR, "Missing experiment script: {$script}\n");
-
-    exit(1);
-}
-
-require $script;

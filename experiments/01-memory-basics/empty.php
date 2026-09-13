@@ -1,65 +1,69 @@
-#!/usr/bin/env php
 <?php
 
 declare(strict_types=1);
 
-require \dirname(__DIR__, 2) . '/vendor/autoload.php';
-
-use App\Memory\ByteFormatter;
-use App\Memory\MemoryDiff;
+use App\Experiment\Experiment;
+use App\Experiment\Options;
+use App\Experiment\Output;
 use App\Memory\MemoryReporter;
-use App\Memory\MemorySnapshot;
 
-$reporter = new MemoryReporter();
+return new Experiment(
+    name: 'memory:empty',
+    description: 'empty-process baseline: before allocation, after allocation, after cleanup',
+    supports: ['elements'],
+    run: static function (Options $options, Output $out): void {
+        $out->heading('empty-process baseline (Phase 1)');
 
-\fwrite(STDOUT, "Experiment: empty-process baseline (Phase 1)\n");
-\fwrite(STDOUT, \sprintf("PID: %d\n", \getmypid()));
+        /*
+         * The smallest thing worth measuring: what a PHP process holds before
+         * it has done anything, what one array adds, and what unset() gives
+         * back. The third of those is the interesting one - PHP memory drops
+         * and RSS usually does not, because the allocator keeps the arena.
+         */
+        $elements = $options->elements(1_000_000);
+        $reporter = new MemoryReporter();
 
-$before = $reporter->snapshot();
-\printSnapshot('Before', $before);
+        $before = $reporter->snapshot();
+        $out->snapshot('Before', $before);
 
-$bucket = \range(1, 1_000_000);
-$afterAllocation = $reporter->snapshot();
-\printSnapshot('After allocation', $afterAllocation);
-\printDiff('Allocation', $reporter->diff($before, $afterAllocation));
+        $bucket = \range(1, $elements);
+        $afterAllocation = $reporter->snapshot();
+        $out->snapshot('After allocation', $afterAllocation);
 
-unset($bucket);
-$afterCleanup = $reporter->snapshot();
-\printSnapshot('After cleanup', $afterCleanup);
-\printDiff('Cleanup', $reporter->diff($afterAllocation, $afterCleanup));
+        $allocation = $reporter->diff($before, $afterAllocation);
+        $out->delta('allocation', $allocation);
 
-\fwrite(STDOUT, "\nContext: values depend on the PHP version, allocator, and container limits.\n");
+        unset($bucket);
+        $afterCleanup = $reporter->snapshot();
+        $out->snapshot('After cleanup', $afterCleanup);
 
-function printSnapshot(string $label, MemorySnapshot $snapshot): void
-{
-    \fwrite(STDOUT, \sprintf("\n%s:\n", $label));
-    \fwrite(STDOUT, \sprintf(
-        "  PHP usage: %s\n",
-        ByteFormatter::format($snapshot->phpUsage),
-    ));
-    \fwrite(STDOUT, \sprintf(
-        "  RSS:       %s\n",
-        $snapshot->rss === null ? 'n/a' : ByteFormatter::format($snapshot->rss),
-    ));
-    \fwrite(STDOUT, \sprintf(
-        "  Private:   %s\n",
-        $snapshot->privateMemory === null ? 'n/a' : ByteFormatter::format($snapshot->privateMemory),
-    ));
-}
+        $cleanup = $reporter->diff($afterAllocation, $afterCleanup);
+        $out->delta('cleanup', $cleanup);
 
-function printDiff(string $label, MemoryDiff $diff): void
-{
-    \fwrite(STDOUT, \sprintf("\nDelta %s:\n", $label));
-    \fwrite(STDOUT, \sprintf(
-        "  PHP usage: %s\n",
-        ByteFormatter::formatSigned($diff->phpUsage),
-    ));
-    \fwrite(STDOUT, \sprintf(
-        "  RSS:       %s\n",
-        $diff->rss === null ? 'n/a' : ByteFormatter::formatSigned($diff->rss),
-    ));
-    \fwrite(STDOUT, \sprintf(
-        "  Private:   %s\n",
-        $diff->privateMemory === null ? 'n/a' : ByteFormatter::formatSigned($diff->privateMemory),
-    ));
-}
+        $out->measure('elements', $elements);
+        $out->measure('allocation_php_bytes', $allocation->phpUsage);
+        $out->measure('allocation_rss_bytes', $allocation->rss);
+        $out->measure('cleanup_php_bytes', $cleanup->phpUsage);
+        $out->measure('cleanup_rss_bytes', $cleanup->rss);
+
+        /*
+         * Whether the RSS follows the PHP counter down is not a fixed fact,
+         * which is why this is measured rather than asserted. A large
+         * allocation is its own mmap()'d chunk and the allocator can hand the
+         * whole thing back; a small one lives in an arena the allocator keeps
+         * for the next request, and only the PHP counter moves.
+         */
+        $returnedToKernel = $cleanup->rss !== null && $cleanup->rss <= $cleanup->phpUsage / 2;
+
+        $out->note(\sprintf(
+            'PHP gave back %s bytes of the %s it took, and RSS moved by %s - %s.',
+            \number_format(-$cleanup->phpUsage),
+            \number_format($allocation->phpUsage),
+            $cleanup->rss === null ? 'n/a' : \number_format($cleanup->rss),
+            $returnedToKernel
+                ? 'this block was large enough to be its own mapping, so the allocator returned it to the kernel'
+                : 'the allocator kept the arena, so the process stays as large as its peak',
+        ));
+        $out->context();
+    },
+);

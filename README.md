@@ -363,8 +363,9 @@ and a child that dies mid-frame.
 
 ## Phase 11 — Experiments CLI
 
-* [ ] `bin/experiment memory:* process:* cow:* ipc:* mmap:* ffi:*`
-* [ ] common options (`--elements`, `--children`, `--format`, `--output`, …)
+* [x] `bin/experiment memory:* process:* cow:* ipc:* shm:* ring:* mmap:* ffi:*` — discovered, not listed
+* [x] common options (`--elements`, `--children`, `--size`, `--iterations`, …), validated and refused when unused
+* [x] `--format=text|json`, `--output=PATH`
 
 ## Phase 12 — Documentation
 

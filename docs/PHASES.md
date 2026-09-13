@@ -721,7 +721,7 @@ output shape.
 
 ---
 
-## Phase 11 — Experiments CLI
+## Phase 11 — Experiments CLI ✅
 
 ### Goal
 
@@ -729,34 +729,61 @@ One consistent way to run any experiment.
 
 ### Tasks
 
-- [ ] 11.1 `bin/experiment` commands
-  - `memory:empty`, `memory:array`, `memory:string`, `memory:gc`
-  - `process:fork`, `process:multiple-forks`
-  - `cow:readonly`, `cow:single-write`, `cow:many-writes`,
-    `cow:multiple-children`
-  - `ipc:socket`, `ipc:sysv`, `ipc:shared-memory`
-  - `mmap:read`, `mmap:write`
-  - `ffi:allocation`, `ffi:buffer`
-- [ ] 11.2 Common options
-  - `--size`, `--elements`, `--children`, `--iterations`,
-    `--payload-size`, `--duration`, `--sleep`, `--format`,
-    `--output`, `--verbose`
-- [ ] 11.3 `ExperimentInterface`
-  - `name()`, `description()`, `run(array $options = []): ExperimentResult`
-  - each experiment validates options, returns structured results, avoids
-    hidden global state, cleans up children and IPC, explains unsupported
-    platforms
-  - `src/Experiment/` registry and runner
+- [x] 11.1 `bin/experiment` commands
+  - every experiment in `experiments/` is reachable by name, and the list in
+    `--help` is the directory rather than a copy of it that drifts
+  - `memory:*`, `process:*`, `cow:*`, `ipc:*`, `shm:*`, `ring:*`, `mmap:*`,
+    `ffi:*` — thirty-two of them
+- [x] 11.2 Common options
+  - `--size`, `--elements`, `--children`, `--iterations`, `--payload-size`,
+    `--duration`, `--sleep`, plus `--format=text|json` and `--output=PATH`
+  - each is validated as a positive integer, and an experiment that does not
+    read an option refuses it rather than ignoring it
+- [x] 11.3 Experiment structure
+  - `src/Experiment/Experiment.php` — name, description, the options it
+    honours, and the closure that runs it
+  - `src/Experiment/Options.php`, `Output.php`, `Registry.php`,
+    `ExperimentRunner.php`, `ExperimentResult.php`
+  - every experiment returns a descriptor and does its allocating inside the
+    closure, so building the registry has no side effects
 
 ### Definition of Done
 
 - `php bin/experiment <name>` runs every experiment with the common options.
-- Output switches between text and JSON with `--format`.
+- Output switches between prose and JSON with `--format`.
 
 ### Tests
 
-- `tests/Experiment/` — option validation, command resolution, cleanup of
-  children/IPC resources (planned).
+- `tests/Experiment/OptionsTest.php` — defaults, overrides, unknown names,
+  zero and negative values, and reporting only what was passed
+- `tests/Experiment/OutputTest.php` — prose reaching the stream, a quiet
+  output still collecting measurements, a missing OS field reading as `n/a`,
+  signed deltas
+- `tests/Experiment/RegistryTest.php` — **the whole `experiments/` directory
+  loading**, every name unique and well-formed, every declared option being
+  one the CLI knows, plus fixtures for a file that returns the wrong thing and
+  two experiments sharing a name
+- `tests/Experiment/ExperimentRunnerTest.php` — options reaching the
+  experiment, an unsupported option being refused, defaults not being reported
+  as if they were passed, and the JSON shape
+
+### Notes
+
+- `experiments/run-helpers.php` is gone. Its global functions are methods on
+  `Output` now, which is the difference between a forked child writing through
+  an instance it inherited — visible in the code — and one writing through a
+  global.
+- `Output` does two jobs: prose streams out as it is produced, so an
+  experiment that forks and then waits does not look hung, while
+  `measure()` collects the numbers that `--format=json` reports. In JSON mode
+  the prose is suppressed rather than captured, because several experiments
+  write from more than one process at once and interleaved output inside a
+  JSON string would be neither readable nor valid.
+- The registry discovers experiments instead of listing them. The list had
+  been hard-coded in `bin/experiment` since Phase 1 and drifted from the
+  directory twice; `RegistryTest` now loads all thirty-two on every test run,
+  so a broken descriptor fails in the suite rather than the first time someone
+  runs that experiment.
 
 ---
 

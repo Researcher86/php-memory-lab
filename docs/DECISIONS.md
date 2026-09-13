@@ -186,3 +186,25 @@ was made. New decisions get appended with a date.
   for the life of the process.
 - Benchmark progress goes to stderr. `--format=json > file` has to stay valid
   JSON.
+
+## 2026-09-13 — Phase 11: experiments are descriptors, and the list is the directory
+
+- Every file under `experiments/` now returns an `Experiment` — name,
+  description, the options it honours, and a closure — instead of executing at
+  require time. That is what lets `Registry` discover them by requiring all
+  thirty-two cheaply: a descriptor allocates nothing, and everything that does
+  (a segment, a mapping, a forked child) lives inside the closure.
+- The hard-coded command list in `bin/experiment` is gone. It had drifted from
+  the directory twice in five phases, and `RegistryTest` now loads the whole
+  directory on every test run, so a broken descriptor fails in the suite
+  rather than the first time that one experiment is run.
+- `experiments/run-helpers.php` and its global functions are replaced by
+  `Output`. A forked child writing through an instance it inherited is visible
+  in the code; a forked child writing through a global is a thing to remember.
+- An experiment refuses an option it does not read, and the check lives in
+  `ExperimentRunner` so that all of them refuse in the same words. Silently
+  accepting `--children=8` is how a run gets reported under a configuration it
+  never had.
+- `--format=json` suppresses the prose rather than capturing it. Several
+  experiments write from several processes at once, and interleaving that
+  inside a JSON string would produce neither readable output nor valid JSON.
