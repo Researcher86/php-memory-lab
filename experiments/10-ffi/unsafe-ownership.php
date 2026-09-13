@@ -32,7 +32,7 @@ return new Experiment(
          * Runs $case in a child and reports how that child ended.
          */
         $contained = static function (string $title, callable $case) use ($out): void {
-            $pid = \pcntl_fork();
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
                 $case();
@@ -40,11 +40,11 @@ return new Experiment(
                 exit(0);
             }
 
-            \pcntl_waitpid($pid, $status);
+            pcntl_waitpid($pid, $status);
 
-            if (\pcntl_wifsignaled($status)) {
-                $signal = \pcntl_wtermsig($status);
-                $outcome = \sprintf(
+            if (pcntl_wifsignaled($status)) {
+                $signal = pcntl_wtermsig($status);
+                $outcome = sprintf(
                     'killed by signal %d (%s)',
                     $signal,
                     match ($signal) {
@@ -55,11 +55,11 @@ return new Experiment(
                     },
                 );
             } else {
-                $code = \pcntl_wexitstatus($status);
-                $outcome = $code === 0 ? 'finished normally - nothing noticed' : \sprintf('exited with code %d', $code);
+                $code = pcntl_wexitstatus($status);
+                $outcome = $code === 0 ? 'finished normally - nothing noticed' : sprintf('exited with code %d', $code);
             }
 
-            $out->write(\sprintf("  %-30s %s\n", $title, $outcome));
+            $out->write(sprintf("  %-30s %s\n", $title, $outcome));
         };
 
         $out->write("\nEach case runs in its own child. Lines starting with \"free():\" or\n");
@@ -70,7 +70,7 @@ return new Experiment(
             $pointer = Libc::malloc(1024);
 
             if ($pointer !== null) {
-                FFI::memcpy($pointer, \str_repeat('a', 1024), 1024);
+                FFI::memcpy($pointer, str_repeat('a', 1024), 1024);
                 Libc::free($pointer);
             }
         });
@@ -93,7 +93,7 @@ return new Experiment(
                 // The address is still a valid number and the pages are still mapped.
                 // Nothing stops the write; the allocator has simply promised those
                 // bytes to somebody else by now.
-                FFI::memcpy($pointer, \str_repeat('z', 1024), 1024);
+                FFI::memcpy($pointer, str_repeat('z', 1024), 1024);
             }
         });
 
@@ -101,7 +101,7 @@ return new Experiment(
             $pointer = Libc::malloc(1024);
 
             if ($pointer !== null) {
-                FFI::memcpy($pointer, \str_repeat('r', 1024), 1024);
+                FFI::memcpy($pointer, str_repeat('r', 1024), 1024);
                 Libc::free($pointer);
 
                 $bytes = Libc::cast('char *', $pointer);
@@ -114,7 +114,7 @@ return new Experiment(
 
             if ($pointer !== null) {
                 // Straight over the allocator's bookkeeping for whatever follows.
-                FFI::memcpy($pointer, \str_repeat('o', 4096), 4096);
+                FFI::memcpy($pointer, str_repeat('o', 4096), 4096);
                 Libc::free($pointer);
             }
         });
@@ -123,7 +123,7 @@ return new Experiment(
             $first = Libc::malloc(64);
 
             if ($first !== null) {
-                FFI::memcpy($first, \str_repeat('o', 4096), 4096);
+                FFI::memcpy($first, str_repeat('o', 4096), 4096);
             }
 
             // The corruption was silent; this is where it is noticed, in a call that
@@ -151,14 +151,14 @@ return new Experiment(
                 $buffer->write(0, 'gone');
             },
             'write past the end' => static function (): void {
-                FfiBuffer::allocate(64)->write(0, \str_repeat('o', 4096));
+                FfiBuffer::allocate(64)->write(0, str_repeat('o', 4096));
             },
         ] as $title => $case) {
             try {
                 $case();
-                $out->write(\sprintf("  %-30s allowed, and survived - the wrapper made it safe\n", $title));
+                $out->write(sprintf("  %-30s allowed, and survived - the wrapper made it safe\n", $title));
             } catch (NativeMemoryException $e) {
-                $out->write(\sprintf("  %-30s refused: %s\n", $title, $e->getMessage()));
+                $out->write(sprintf("  %-30s refused: %s\n", $title, $e->getMessage()));
             }
         }
 

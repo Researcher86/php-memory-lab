@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4be03e42363ab164dd56bfea1ff5bca0",
+    "content-hash": "ce275e23d00c1a1b1f3981bf22cb8c11",
     "packages": [],
     "packages-dev": [
         {
@@ -4605,7 +4605,6 @@
         "ext-posix": "*",
         "ext-shmop": "*",
         "ext-sockets": "*",
-        "ext-sysvmsg": "*",
         "ext-sysvsem": "*",
         "ext-sysvshm": "*"
     },

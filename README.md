@@ -40,7 +40,7 @@ Requires Docker. Nothing is installed on your machine.
 
 ```bash
 make install          # build the image and install dependencies
-make test             # the memory-reporting layer, verified
+make test             # every primitive in src/, verified
 ```
 
 The container is a real Linux with a real `/proc`, which is the whole point.
@@ -55,10 +55,14 @@ php -r 'echo memory_get_usage(true), " ", file_get_contents("/proc/self/status")
 (engine-managed bytes). They do not agree, and the project exists to make
 that gap measurable.
 
-First experiment, once Phase 1 lands:
+Then run any of the thirty-two experiments, or ask for the list:
 
 ```bash
-make experiment ARGS="memory:empty"
+make experiment                                   # every experiment, with its description
+make experiment ARGS="memory:empty"               # the smallest one
+make experiment ARGS="cow:many-writes --children=8"
+make experiment ARGS="ring:throughput"            # the one whose result is most surprising
+make benchmark  ARGS="ipc"                        # the same mechanisms, timed and repeated
 ```
 
 See [Docs](#docs) for what each phase produces and how it is verified.
@@ -92,16 +96,18 @@ Every file below is standalone enough to open cold.
 | `/proc/self/status` fields map to virtual/RSS/private memory | [`src/Memory/ProcStatusReader.php`](src/Memory/ProcStatusReader.php) |
 | `smaps_rollup` splits memory into PSS, shared and private-dirty | [`src/Memory/SmapsRollupReader.php`](src/Memory/SmapsRollupReader.php) · [`src/Memory/SmapsRollup.php`](src/Memory/SmapsRollup.php) |
 | raw bytes become readable human sizes | [`src/Memory/ByteFormatter.php`](src/Memory/ByteFormatter.php) |
-| arrays, strings, objects and GC actually cost memory | `experiments/02-arrays-and-strings/` · `experiments/03-garbage-collection/` (Phase 2) |
-| `fork()` shares and later splits pages (CoW) | `experiments/04-fork/` · `experiments/05-copy-on-write/` (Phases 3–4) |
+| arrays, strings, objects and GC actually cost memory | `experiments/02-arrays-and-strings/` · `experiments/03-garbage-collection/` |
+| `fork()` shares and later splits pages (CoW) | `experiments/04-fork/` · `experiments/05-copy-on-write/` |
+| an experiment declares its name, options and measurements | [`src/Experiment/Experiment.php`](src/Experiment/Experiment.php) · [`src/Experiment/Registry.php`](src/Experiment/Registry.php) |
+| a benchmark records the machine it ran on | [`src/Benchmark/BenchmarkRunner.php`](src/Benchmark/BenchmarkRunner.php) · [`src/Benchmark/Environment.php`](src/Benchmark/Environment.php) |
 | messages stay framed over a byte stream | [`src/Ipc/SocketChannel.php`](src/Ipc/SocketChannel.php) · [`src/Ipc/MessageFramer.php`](src/Ipc/MessageFramer.php) |
 | SysV shared memory differs from raw bytes, and why it races | [`src/Ipc/SharedMemorySegment.php`](src/Ipc/SharedMemorySegment.php) · [`src/Ipc/Semaphore.php`](src/Ipc/Semaphore.php) |
 | a fixed-size shared ring buffer synchronizes one producer/consumer | [`src/Ipc/RingBuffer.php`](src/Ipc/RingBuffer.php) |
 | files map into the address space | [`src/Native/MappedFile.php`](src/Native/MappedFile.php) · [`src/Native/Libc.php`](src/Native/Libc.php) |
 | native memory lives outside the engine, and what that unlocks | [`src/Native/FfiBuffer.php`](src/Native/FfiBuffer.php) |
 
-Anything marked *Phase N* follows the roadmap below; everything linked is
-built and test-ready today.
+All thirteen phases are built; the roadmap below is the record of how. Every
+file linked here is standalone enough to open cold.
 
 ---
 
@@ -289,7 +295,7 @@ and a child that dies mid-frame.
 ## Phase 0 — Project Setup
 
 * [x] Composer project (`researcher86/php-memory-lab`, PHP 8.5, PSR-4 `App\` → `src/`, platform extensions declared)
-* [x] Dockerfile: `php:8.5-cli` + `pcntl`, `posix`, `shmop`, `sockets`, `sysvmsg`, `sysvsem`, `sysvshm`, `ffi`
+* [x] Dockerfile: `php:8.5-cli` + `pcntl`, `posix`, `shmop`, `sockets`, `sysvsem`, `sysvshm`, `ffi`
 * [x] Docker Compose, Makefile (test/analyse/format/shell/htop), PHPUnit, PHPStan level 8, PHP-CS-Fixer
 * [x] Initial commit: `Initialize php-memory-lab project`
 

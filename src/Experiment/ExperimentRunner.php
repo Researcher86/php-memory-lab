@@ -15,7 +15,9 @@ use InvalidArgumentException;
  */
 final readonly class ExperimentRunner
 {
-    public function __construct(private Registry $registry) {}
+    public function __construct(private Registry $registry)
+    {
+    }
 
     public function run(string $name, Options $options, Output $output): ExperimentResult
     {
@@ -23,7 +25,7 @@ final readonly class ExperimentRunner
         $unsupported = array_diff($options->names(), $experiment->supports);
 
         if ($unsupported !== []) {
-            throw new InvalidArgumentException(\sprintf(
+            throw new InvalidArgumentException(sprintf(
                 '%s does not use --%s. It understands: %s',
                 $name,
                 implode(', --', $unsupported),

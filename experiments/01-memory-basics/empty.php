@@ -26,7 +26,7 @@ return new Experiment(
         $before = $reporter->snapshot();
         $out->snapshot('Before', $before);
 
-        $bucket = \range(1, $elements);
+        $bucket = range(1, $elements);
         $afterAllocation = $reporter->snapshot();
         $out->snapshot('After allocation', $afterAllocation);
 
@@ -55,11 +55,11 @@ return new Experiment(
          */
         $returnedToKernel = $cleanup->rss !== null && $cleanup->rss <= $cleanup->phpUsage / 2;
 
-        $out->note(\sprintf(
+        $out->note(sprintf(
             'PHP gave back %s bytes of the %s it took, and RSS moved by %s - %s.',
-            \number_format(-$cleanup->phpUsage),
-            \number_format($allocation->phpUsage),
-            $cleanup->rss === null ? 'n/a' : \number_format($cleanup->rss),
+            number_format(-$cleanup->phpUsage),
+            number_format($allocation->phpUsage),
+            $cleanup->rss === null ? 'n/a' : number_format($cleanup->rss),
             $returnedToKernel
                 ? 'this block was large enough to be its own mapping, so the allocator returned it to the kernel'
                 : 'the allocator kept the arena, so the process stays as large as its peak',

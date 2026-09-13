@@ -27,16 +27,16 @@ return new Experiment(
          */
         $total = $options->size(16 * 1024 * 1024);
         $block = 64 * 1024;
-        $blocks = \intdiv($total, $block);
-        $chunk = \str_repeat('x', $block);
+        $blocks = intdiv($total, $block);
+        $chunk = str_repeat('x', $block);
 
         // One source of bytes, built once and outside every measurement, so that the
         // array row below can take a real copy of its data rather than a second
         // reference to the same zval - which would let it hold "16 MiB" for the price
         // of 256 refcount increments and make the column meaningless.
-        $source = \str_repeat('s', $total);
+        $source = str_repeat('s', $total);
         $reporter = new MemoryReporter();
-        $path = \sys_get_temp_dir() . '/ffi-compare-' . \bin2hex(\random_bytes(4)) . '.bin';
+        $path = sys_get_temp_dir() . '/ffi-compare-' . bin2hex(random_bytes(4)) . '.bin';
 
         /**
          * One row of the table. A closure rather than a function because it
@@ -56,37 +56,37 @@ return new Experiment(
             callable $read,
             callable $release,
         ) use ($reporter, $out): void {
-            \gc_collect_cycles();
+            gc_collect_cycles();
             $before = $reporter->snapshot();
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $container = $allocate();
-            $allocateMs = (\hrtime(true) - $start) / 1e6;
+            $allocateMs = (hrtime(true) - $start) / 1e6;
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             for ($i = 0; $i < $blocks; $i++) {
                 $write($container, $i);
             }
-            $writeMs = (\hrtime(true) - $start) / 1e6;
+            $writeMs = (hrtime(true) - $start) / 1e6;
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $bytes = 0;
             for ($i = 0; $i < $blocks; $i++) {
-                $bytes += \strlen($read($container, $i));
+                $bytes += strlen($read($container, $i));
             }
-            $readMs = (\hrtime(true) - $start) / 1e6;
+            $readMs = (hrtime(true) - $start) / 1e6;
 
             $full = $reporter->diff($before, $reporter->snapshot());
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $release($container);
             unset($container);
-            \gc_collect_cycles();
-            $releaseMs = (\hrtime(true) - $start) / 1e6;
+            gc_collect_cycles();
+            $releaseMs = (hrtime(true) - $start) / 1e6;
 
             $after = $reporter->diff($before, $reporter->snapshot());
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "%-14s | %7.2f %7.2f %7.2f %7.2f | %10s %10s | %10s %10s\n",
                 $name,
                 $allocateMs,
@@ -100,31 +100,31 @@ return new Experiment(
             ));
         };
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\n%s in %d blocks of %s.\n\n",
             ByteFormatter::format($total),
             $blocks,
             ByteFormatter::format($block),
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "%-14s | %s | %s | %s\n",
             'container',
             '  alloc   write    read release  (ms)',
             '     while held (PHP / RSS)',
             '   after release (PHP / RSS)',
         ));
-        $out->write(\str_repeat('-', 106) . "\n");
+        $out->write(str_repeat('-', 106) . "\n");
 
         $measure(
             'PHP string',
             $blocks,
-            static fn (): array => ['data' => \str_repeat("\0", $total)],
+            static fn (): array => ['data' => str_repeat("\0", $total)],
             static function (array &$box, int $i) use ($block, $chunk): void {
                 // A string is immutable in place only for reallocation purposes -
                 // an overwrite of the same length happens in the existing buffer.
-                $box['data'] = \substr_replace($box['data'], $chunk, $i * $block, $block);
+                $box['data'] = substr_replace($box['data'], $chunk, $i * $block, $block);
             },
-            static fn (array $box, int $i): string => \substr($box['data'], $i * $block, $block),
+            static fn (array $box, int $i): string => substr($box['data'], $i * $block, $block),
             static function (array &$box): void { $box['data'] = ''; },
         );
 
@@ -133,7 +133,7 @@ return new Experiment(
             $blocks,
             static fn (): array => ['data' => []],
             static function (array &$box, int $i) use ($block, $source): void {
-                $box['data'][$i] = \substr($source, $i * $block, $block);
+                $box['data'][$i] = substr($source, $i * $block, $block);
             },
             static fn (array $box, int $i): string => $box['data'][$i],
             static function (array &$box): void { $box['data'] = []; },
@@ -157,7 +157,7 @@ return new Experiment(
             static function (MappedFile $file): void { $file->unmap(); },
         );
 
-        @\unlink($path);
+        @unlink($path);
 
         $out->note('only the two PHP containers appear in PHP usage. The other two are the same 16.00 MiB and the engine has no idea they exist - which is what makes RSS the only column that tells the truth about all four.');
         $out->note('the PHP string is slow to write for a structural reason, not an incidental one: PHP has no in-place block write into a string, so every partial update copies all 16.00 MiB. The array avoids that by never having one big buffer to copy - which also means it never has one contiguous region, and cannot be handed to anything that expects one.');

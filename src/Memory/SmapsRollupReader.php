@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Memory;
 
-use RuntimeException;
-
 /**
  * Reads /proc/<pid>/smaps_rollup - the kernel's per-process summary of every
  * memory mapping. Fields that the current kernel does not report stay at
@@ -15,25 +13,7 @@ final class SmapsRollupReader
 {
     public function read(int $pid = 0): SmapsRollup
     {
-        $actualPid = $pid > 0 ? $pid : getmypid();
-
-        if ($actualPid === false) {
-            throw new RuntimeException('Unable to determine process ID');
-        }
-
-        $path = \sprintf('/proc/%d/smaps_rollup', $actualPid);
-
-        if (!is_readable($path)) {
-            throw new RuntimeException(\sprintf('Unable to read %s', $path));
-        }
-
-        $content = file_get_contents($path);
-
-        if ($content === false) {
-            throw new RuntimeException(\sprintf('Unable to read %s', $path));
-        }
-
-        return $this->parse($content);
+        return $this->parse(ProcFile::read('smaps_rollup', $pid));
     }
 
     public function parse(string $content): SmapsRollup

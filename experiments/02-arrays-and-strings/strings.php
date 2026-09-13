@@ -49,15 +49,15 @@ return new Experiment(
         };
 
         $run('empty string        (strlen 0)', static fn (): string => '');
-        $run('short string        (strlen 32)', static fn (): string => \str_repeat('a', 32));
-        $run('1 KiB string', static fn (): string => \str_repeat('a', 1 << 10));
-        $run('1 MiB string', static fn (): string => \str_repeat('a', 1 << 20));
+        $run('short string        (strlen 32)', static fn (): string => str_repeat('a', 32));
+        $run('1 KiB string', static fn (): string => str_repeat('a', 1 << 10));
+        $run('1 MiB string', static fn (): string => str_repeat('a', 1 << 20));
         $run(
             'grown by .= 10k x 1k',
             static function (): string {
                 $s = '';
                 for ($i = 0; $i < 10_000; ++$i) {
-                    $s .= \str_repeat('x', 1_024);
+                    $s .= str_repeat('x', 1_024);
                 }
 
                 return $s;
@@ -70,7 +70,7 @@ return new Experiment(
          * The copy appears only when one of the two is actually modified. Measured
          * step by step, not as a single allocate-then-unset.
          */
-        $base = \str_repeat('a', 1 << 20);
+        $base = str_repeat('a', 1 << 20);
         $step = $reporter->snapshot();
         $b = $base;
         $afterCopy = $reporter->snapshot();

@@ -52,7 +52,7 @@ final class Semaphore
         $handle = @sem_get($key, $maxAcquire, $permissions, $autoRelease);
 
         if ($handle === false) {
-            throw new SemaphoreException(\sprintf('Unable to get semaphore 0x%x', $key));
+            throw new SemaphoreException(sprintf('Unable to get semaphore 0x%x', $key));
         }
 
         return new self($key, $autoRelease, $handle);
@@ -62,7 +62,7 @@ final class Semaphore
     public function acquire(): void
     {
         if (!@sem_acquire($this->requireHandle())) {
-            throw new SemaphoreException(\sprintf('Unable to acquire semaphore 0x%x', $this->key));
+            throw new SemaphoreException(sprintf('Unable to acquire semaphore 0x%x', $this->key));
         }
     }
 
@@ -75,7 +75,7 @@ final class Semaphore
     public function release(): void
     {
         if (!@sem_release($this->requireHandle())) {
-            throw new SemaphoreException(\sprintf('Unable to release semaphore 0x%x', $this->key));
+            throw new SemaphoreException(sprintf('Unable to release semaphore 0x%x', $this->key));
         }
     }
 
@@ -118,7 +118,7 @@ final class Semaphore
     private function requireHandle(): SysvSemaphore
     {
         if ($this->handle === null) {
-            throw new SemaphoreException(\sprintf('Semaphore 0x%x was already removed', $this->key));
+            throw new SemaphoreException(sprintf('Semaphore 0x%x was already removed', $this->key));
         }
 
         return $this->handle;

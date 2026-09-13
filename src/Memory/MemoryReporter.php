@@ -7,17 +7,28 @@ namespace App\Memory;
 use RuntimeException;
 
 /**
- * The composition point for Phase 1 measurements: joins PHP allocator
- * counters with the two /proc readers and turns two snapshots into a diff.
- * A failed /proc read degrades to null OS fields, so a snapshot still works
- * on a non-Linux host for the PHP-only fields.
+ * The composition point for every measurement in this project: joins the PHP
+ * allocator counters with the two /proc readers, and turns two snapshots into
+ * a diff.
+ *
+ * A failed /proc read degrades to null OS fields rather than throwing, so a
+ * snapshot still works on a non-Linux host for the PHP-only half. The
+ * alternative - refusing to measure anything because one file is missing -
+ * would make the reporting layer untestable anywhere but Linux.
+ *
+ * snapshot() reads two files and parses both, and smaps_rollup in particular
+ * makes the kernel walk every mapping the process has. That is cheap next to
+ * the operations it is used to measure, and expensive inside a tight loop:
+ * take a snapshot before and after a phase of work, not around each
+ * iteration of it.
  */
 final readonly class MemoryReporter
 {
     public function __construct(
         private ProcStatusReader $statusReader = new ProcStatusReader(),
         private SmapsRollupReader $smapsRollupReader = new SmapsRollupReader(),
-    ) {}
+    ) {
+    }
 
     public function snapshot(): MemorySnapshot
     {

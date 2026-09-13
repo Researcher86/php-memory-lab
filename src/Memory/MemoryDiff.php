@@ -20,5 +20,6 @@ final readonly class MemoryDiff
         public ?int $sharedMemory = null,
         public ?int $privateMemory = null,
         public ?int $pss = null,
-    ) {}
+    ) {
+    }
 }

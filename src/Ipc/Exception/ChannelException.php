@@ -11,4 +11,6 @@ use RuntimeException;
  * errors a caller cannot act on differently - a failed syscall on a channel
  * that was, as far as anyone knew, healthy.
  */
-class ChannelException extends RuntimeException {}
+class ChannelException extends RuntimeException
+{
+}

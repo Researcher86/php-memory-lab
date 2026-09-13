@@ -19,5 +19,6 @@ final readonly class BenchmarkReport
         public string $suite,
         public Environment $environment,
         public array $results,
-    ) {}
+    ) {
+    }
 }

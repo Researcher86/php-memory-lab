@@ -26,7 +26,9 @@ final class Registry
     /** @var array<string, Experiment>|null */
     private ?array $experiments = null;
 
-    public function __construct(private readonly string $directory) {}
+    public function __construct(private readonly string $directory)
+    {
+    }
 
     /**
      * @return array<string, Experiment>
@@ -43,11 +45,11 @@ final class Registry
             $experiment = require $path;
 
             if (!$experiment instanceof Experiment) {
-                throw new RuntimeException(\sprintf('%s did not return an Experiment', $path));
+                throw new RuntimeException(sprintf('%s did not return an Experiment', $path));
             }
 
             if (isset($experiments[$experiment->name])) {
-                throw new RuntimeException(\sprintf('Two experiments are called %s', $experiment->name));
+                throw new RuntimeException(sprintf('Two experiments are called %s', $experiment->name));
             }
 
             $experiments[$experiment->name] = $experiment;
@@ -65,6 +67,6 @@ final class Registry
 
     public function get(string $name): Experiment
     {
-        return $this->all()[$name] ?? throw new RuntimeException(\sprintf('Unknown experiment: %s', $name));
+        return $this->all()[$name] ?? throw new RuntimeException(sprintf('Unknown experiment: %s', $name));
     }
 }

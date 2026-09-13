@@ -28,8 +28,8 @@ return new Experiment(
         for ($i = 0; $i < $rowCount; $i++) {
             $records[] = [
                 'id' => $i + 1,
-                'name' => \sprintf('user-%d', $i),
-                'email' => \sprintf('user%d@example.org', $i),
+                'name' => sprintf('user-%d', $i),
+                'email' => sprintf('user%d@example.org', $i),
                 'active' => ($i % 2) === 0,
                 'score' => ($i * 37) % 1_000,
                 'tags' => ['php', 'memory', 'ipc'],
@@ -39,13 +39,13 @@ return new Experiment(
         /** @var array<string, array{callable(array<int, array<string, mixed>>): string, callable(string): mixed}> $formats */
         $formats = [
             'json' => [
-                static fn (array $rows): string => \json_encode($rows, JSON_THROW_ON_ERROR),
-                static fn (string $wire): mixed => \json_decode($wire, true, 512, JSON_THROW_ON_ERROR),
+                static fn (array $rows): string => json_encode($rows, JSON_THROW_ON_ERROR),
+                static fn (string $wire): mixed => json_decode($wire, true, 512, JSON_THROW_ON_ERROR),
             ],
 
             'serialize' => [
-                static fn (array $rows): string => \serialize($rows),
-                static fn (string $wire): mixed => \unserialize($wire, ['allowed_classes' => false]),
+                static fn (array $rows): string => serialize($rows),
+                static fn (string $wire): mixed => unserialize($wire, ['allowed_classes' => false]),
             ],
 
             'csv' => [
@@ -53,13 +53,13 @@ return new Experiment(
                     $out = '';
 
                     foreach ($rows as $row) {
-                        $out .= \implode(',', [
+                        $out .= implode(',', [
                             $row['id'],
                             $row['name'],
                             $row['email'],
                             (int) $row['active'],
                             $row['score'],
-                            \implode('|', $row['tags']),
+                            implode('|', $row['tags']),
                         ]) . "\n";
                     }
 
@@ -68,8 +68,8 @@ return new Experiment(
                 static function (string $wire): array {
                     $rows = [];
 
-                    foreach (\explode("\n", \rtrim($wire, "\n")) as $line) {
-                        [$id, $name, $email, $active, $score, $tags] = \explode(',', $line);
+                    foreach (explode("\n", rtrim($wire, "\n")) as $line) {
+                        [$id, $name, $email, $active, $score, $tags] = explode(',', $line);
 
                         $rows[] = [
                             'id' => (int) $id,
@@ -77,7 +77,7 @@ return new Experiment(
                             'email' => $email,
                             'active' => $active === '1',
                             'score' => (int) $score,
-                            'tags' => \explode('|', $tags),
+                            'tags' => explode('|', $tags),
                         ];
                     }
 
@@ -90,18 +90,18 @@ return new Experiment(
             // the smallest and the most brittle of the four.
             'binary' => [
                 static function (array $rows): string {
-                    $out = \pack('N', \count($rows));
+                    $out = pack('N', count($rows));
 
                     foreach ($rows as $row) {
-                        $out .= \pack('N', $row['id'])
-                            . \pack('n', \strlen($row['name'])) . $row['name']
-                            . \pack('n', \strlen($row['email'])) . $row['email']
-                            . \pack('C', (int) $row['active'])
-                            . \pack('n', $row['score'])
-                            . \pack('C', \count($row['tags']));
+                        $out .= pack('N', $row['id'])
+                            . pack('n', strlen($row['name'])) . $row['name']
+                            . pack('n', strlen($row['email'])) . $row['email']
+                            . pack('C', (int) $row['active'])
+                            . pack('n', $row['score'])
+                            . pack('C', count($row['tags']));
 
                         foreach ($row['tags'] as $tag) {
-                            $out .= \pack('C', \strlen($tag)) . $tag;
+                            $out .= pack('C', strlen($tag)) . $tag;
                         }
                     }
 
@@ -112,14 +112,14 @@ return new Experiment(
 
                     $take = static function (string $format, int $width) use ($wire, &$offset): int {
                         /** @var array{1: int} $unpacked */
-                        $unpacked = \unpack($format, \substr($wire, $offset, $width));
+                        $unpacked = unpack($format, substr($wire, $offset, $width));
                         $offset += $width;
 
                         return $unpacked[1];
                     };
 
                     $takeString = static function (int $length) use ($wire, &$offset): string {
-                        $value = \substr($wire, $offset, $length);
+                        $value = substr($wire, $offset, $length);
                         $offset += $length;
 
                         return $value;
@@ -140,7 +140,7 @@ return new Experiment(
                             $tags[] = $takeString($take('C', 1));
                         }
 
-                        $rows[] = \compact('id', 'name', 'email', 'active', 'score', 'tags');
+                        $rows[] = compact('id', 'name', 'email', 'active', 'score', 'tags');
                     }
 
                     return $rows;
@@ -148,7 +148,7 @@ return new Experiment(
             ],
         ];
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\n%-10s | %9s | %9s %9s %11s | %10s | %s\n",
             'format',
             'bytes',
@@ -158,29 +158,29 @@ return new Experiment(
             'peak alloc',
             'round-trips equal?',
         ));
-        $out->write(\str_repeat('-', 88) . "\n");
+        $out->write(str_repeat('-', 88) . "\n");
 
         foreach ($formats as $name => [$encode, $decode]) {
-            \gc_collect_cycles();
-            \memory_reset_peak_usage();
-            $baseline = \memory_get_usage();
+            gc_collect_cycles();
+            memory_reset_peak_usage();
+            $baseline = memory_get_usage();
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $wire = $encode($records);
-            $encodeNs = \hrtime(true) - $start;
+            $encodeNs = hrtime(true) - $start;
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $decoded = $decode($wire);
-            $decodeNs = \hrtime(true) - $start;
+            $decodeNs = hrtime(true) - $start;
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "%-10s | %9s | %6.2f ms %6.2f ms %8.2f ms | %10s | %s\n",
                 $name,
-                ByteFormatter::format(\strlen($wire)),
+                ByteFormatter::format(strlen($wire)),
                 $encodeNs / 1e6,
                 $decodeNs / 1e6,
                 ($encodeNs + $decodeNs) / 1e6,
-                ByteFormatter::format(\memory_get_peak_usage() - $baseline),
+                ByteFormatter::format(memory_get_peak_usage() - $baseline),
                 $decoded === $records ? 'yes' : 'NO - lossy',
             ));
 
@@ -192,22 +192,22 @@ return new Experiment(
          * its "round trip" is a copy - which is what every row above is paying extra
          * for in exchange for structure.
          */
-        $raw = \str_repeat('x', 100_000);
-        \gc_collect_cycles();
-        \memory_reset_peak_usage();
-        $baseline = \memory_get_usage();
-        $start = \hrtime(true);
+        $raw = str_repeat('x', 100_000);
+        gc_collect_cycles();
+        memory_reset_peak_usage();
+        $baseline = memory_get_usage();
+        $start = hrtime(true);
         $copy = (string) $raw;
-        $rawNs = \hrtime(true) - $start;
+        $rawNs = hrtime(true) - $start;
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "%-10s | %9s | %6s    %6s    %8.2f ms | %10s | %s\n",
             'raw string',
-            ByteFormatter::format(\strlen($raw)),
+            ByteFormatter::format(strlen($raw)),
             'n/a',
             'n/a',
             $rawNs / 1e6,
-            ByteFormatter::format(\memory_get_peak_usage() - $baseline),
+            ByteFormatter::format(memory_get_peak_usage() - $baseline),
             $copy === $raw ? 'yes' : 'NO - lossy',
         ));
 

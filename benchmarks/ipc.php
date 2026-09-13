@@ -24,15 +24,15 @@ use App\Ipc\SocketChannel;
  *
  * @return list<Benchmark>
  */
-$payload = \str_repeat('x', 1024);
+$payload = str_repeat('x', 1024);
 
 [$left, $right] = SocketChannel::pair();
 $ring = RingBuffer::create(SharedMemorySegment::randomKey(), 64, 1024);
 $segment = SharedMemorySegment::attach(SharedMemorySegment::randomKey());
 $semaphore = Semaphore::attach(SharedMemorySegment::randomKey());
-$rows = \array_fill(0, 100, ['id' => 1, 'name' => 'user', 'tags' => ['a', 'b']]);
+$rows = array_fill(0, 100, ['id' => 1, 'name' => 'user', 'tags' => ['a', 'b']]);
 
-\register_shutdown_function(static function () use ($left, $right, $ring, $segment, $semaphore): void {
+register_shutdown_function(static function () use ($left, $right, $ring, $segment, $semaphore): void {
     $left->close();
     $right->close();
     $ring->destroy();
@@ -67,10 +67,10 @@ return [
     }),
 
     new Benchmark('serialize: 100 rows round trip', 2_000, static function () use ($rows): void {
-        \unserialize(\serialize($rows), ['allowed_classes' => false]);
+        unserialize(serialize($rows), ['allowed_classes' => false]);
     }),
 
     new Benchmark('json: 100 rows round trip', 2_000, static function () use ($rows): void {
-        \json_decode((string) \json_encode($rows, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        json_decode((string) json_encode($rows, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
     }),
 ];

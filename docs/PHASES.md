@@ -905,21 +905,46 @@ Suggested first tasks:
 
 ## Project-wide Definition of Done
 
-The project is ready for the next stage when:
+All thirteen phases are committed and verified. Against the list this plan
+started with:
 
-- All MVP experiments run inside Docker.
-- Memory measurements are available in human-readable and JSON formats.
-- `/proc/self/status` is parsed correctly.
-- Parent and child processes can be measured independently.
-- Copy-on-Write behavior is demonstrated with real measurements.
-- Tests cover the memory-reporting layer.
-- Each experiment explains what is tested, what is expected, what was
-  measured, why the result happened, and its limitations.
-- README contains reproducible commands.
-- Results include environment information.
-- No benchmark is presented as a universal result.
-- Unsafe experiments are isolated.
-- IPC resources are cleaned up correctly.
+- [x] All MVP experiments run inside Docker — thirty-two of them, through
+      `bin/experiment`.
+- [x] Memory measurements are available in human-readable and JSON formats
+      (`--format=json`), and benchmarks in text, JSON and CSV.
+- [x] `/proc/self/status` is parsed correctly, along with `smaps_rollup`.
+- [x] Parent and child processes are measured independently.
+- [x] Copy-on-Write behaviour is demonstrated with real measurements, and so
+      is its second appearance as `MAP_PRIVATE`.
+- [x] Tests cover the memory-reporting layer, the IPC primitives, the native
+      ones, the benchmark harness, the experiment CLI and the documentation.
+- [x] Each experiment states what is tested, what was measured, why the result
+      happened and what it does not prove.
+- [x] README contains reproducible commands, and a test checks that each one
+      still resolves.
+- [x] Results record their environment; `Environment::detect()` is part of
+      every benchmark report.
+- [x] No benchmark is presented as a universal result — the text formatter
+      says so in its own footer.
+- [x] Unsafe experiments are isolated in forked children inside a disposable
+      container.
+- [x] IPC resources are cleaned up correctly, checked by reading
+      `/proc/sysvipc` after every full run.
+
+### Review pass
+
+After Phase 12 the whole project was read through once more:
+
+- The code style was aligned with the sibling project `php-worker-pool` — no
+  backslash prefixes on internal functions, no single-line empty bodies.
+- Dead weight was removed: `ext-sysvmsg` (nothing calls `msg_*`), the
+  `--duration` option (no experiment read it), and the duplicated `/proc`
+  reading and CLI argument parsing, which became `Memory\ProcFile` and
+  `Cli\Arguments`.
+- Every class docblock was checked for saying *why* rather than *what*, which
+  is the only kind of comment this project keeps.
+
+---
 
 ## Testing Strategy
 
@@ -943,7 +968,7 @@ The project is ready for the next stage when:
 ### Platform tests
 
 The Docker image ships exact extensions (`pcntl`, `posix`, `sockets`,
-`sysvmsg`, `sysvsem`, `sysvshm`, `ffi`) and a real `/proc`, so the CI host
+`sysvsem`, `sysvshm`, `shmop`, `ffi`) and a real `/proc`, so the CI host
 and the developer container match. Tests that read `/proc` are skipped when
 it is unavailable (e.g. on a non-Linux host, which this project does not
 target). Runtime `extension_loaded()` checks are deliberately avoided.

@@ -34,7 +34,7 @@ return new Experiment(
          */
         $out->note('acyclic: 1M ints in one array, freed by unset()');
         $before = $reporter->snapshot();
-        $value = \range(1, 1_000_000);
+        $value = range(1, 1_000_000);
         $afterAlloc = $reporter->snapshot();
         $out->delta('allocated', $reporter->diff($before, $afterAlloc));
 
@@ -47,24 +47,24 @@ return new Experiment(
          * automatic collector disabled the garbage keeps piling up in the root
          * buffer, and only gc_collect_cycles() returns that memory.
          */
-        \gc_disable();
+        gc_disable();
 
         $out->note('cyclic: N self-referencing arrays, automatic GC disabled during the build');
         $before = $reporter->snapshot();
         for ($i = 0; $i < $N; ++$i) {
-            $a = ['payload' => \str_repeat('x', 128)];
+            $a = ['payload' => str_repeat('x', 128)];
             $a['self'] = &$a; // cycle: refcount can never reach zero on its own
             unset($a);
         }
         $afterBuild = $reporter->snapshot();
         $out->delta('after building N cycles (GC off)', $reporter->diff($before, $afterBuild));
 
-        $recollected = \gc_collect_cycles();
+        $recollected = gc_collect_cycles();
         $afterGc = $reporter->snapshot();
         $out->delta('after gc_collect_cycles()', $reporter->diff($afterBuild, $afterGc));
-        $out->note(\sprintf('gc_collect_cycles() freed %d root buffers', $recollected));
+        $out->note(sprintf('gc_collect_cycles() freed %d root buffers', $recollected));
 
-        \gc_enable();
+        gc_enable();
 
         $out->note('the cyclic case is the long-running-worker trap: a worker that accumulates cycles keeps the memory until cycle collection runs, automatically or via gc_collect_cycles().');
         $out->context();

@@ -10,4 +10,6 @@ use RuntimeException;
  * The ring buffer refused an operation it understood: a message larger than a
  * slot, a segment that could not be created, an already destroyed buffer.
  */
-class RingBufferException extends RuntimeException {}
+class RingBufferException extends RuntimeException
+{
+}

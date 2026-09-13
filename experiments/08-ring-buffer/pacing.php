@@ -29,7 +29,7 @@ return new Experiment(
         for ($i = 1; $i <= 5; $i++) {
             $accepted = $buffer->push('message ' . $i);
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "  push #%d -> %-5s  size %d/%d%s\n",
                 $i,
                 $accepted ? 'true' : 'false',
@@ -42,7 +42,7 @@ return new Experiment(
         for ($i = 1; $i <= 5; $i++) {
             $message = $buffer->pop();
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "  pop  #%d -> %-11s size %d/%d%s\n",
                 $i,
                 $message ?? 'null',
@@ -62,16 +62,16 @@ return new Experiment(
         $messages = $options->iterations(400);
         $consumerDelayUs = 500;
         $buffer = RingBuffer::create(SharedMemorySegment::randomKey(), 8, 64);
-        $payload = \str_repeat('x', 64);
+        $payload = str_repeat('x', 64);
 
-        $start = \hrtime(true);
-        $pid = \pcntl_fork();
+        $start = hrtime(true);
+        $pid = pcntl_fork();
 
         if ($pid === 0) {
             $consumer = RingBuffer::attach($buffer->key);
 
             for ($received = 0; $received < $messages;) {
-                \usleep($consumerDelayUs);
+                usleep($consumerDelayUs);
 
                 if ($consumer->pop() !== null) {
                     ++$received;
@@ -89,18 +89,18 @@ return new Experiment(
             }
         }
 
-        \pcntl_waitpid($pid, $status);
-        $elapsedMs = (\hrtime(true) - $start) / 1e6;
+        pcntl_waitpid($pid, $status);
+        $elapsedMs = (hrtime(true) - $start) / 1e6;
         $buffer->destroy();
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nProducer at full speed, consumer sleeping %d us per message:\n  %d messages in %.1f ms = %.0f/s, against a consumer capable of %.0f/s\n  the producer was refused %s times - once per attempt made while the buffer was full\n",
             $consumerDelayUs,
             $messages,
             $elapsedMs,
             $messages / ($elapsedMs / 1000),
             1_000_000 / $consumerDelayUs,
-            \number_format($refusals),
+            number_format($refusals),
         ));
 
         $out->note('the producer ran at the consumer\'s rate without either of them agreeing to it. That is backpressure, and an 8-slot buffer is the entire mechanism.');
@@ -116,17 +116,17 @@ return new Experiment(
         $producerGapUs = 2_000;
         $buffer = RingBuffer::create(SharedMemorySegment::randomKey(), 64, 32);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\n%d messages, one every %d us, varying only how long the consumer waits between polls:\n\n",
             $messages,
             $producerGapUs,
         ));
-        $out->write(\sprintf("%12s | %10s | %14s | %s\n", 'poll gap', 'wall', 'mean latency', 'consumer CPU'));
-        $out->write(\str_repeat('-', 60) . "\n");
+        $out->write(sprintf("%12s | %10s | %14s | %s\n", 'poll gap', 'wall', 'mean latency', 'consumer CPU'));
+        $out->write(str_repeat('-', 60) . "\n");
 
         foreach ([0, 100, 1_000, 10_000] as $pollGapUs) {
-            $start = \hrtime(true);
-            $pid = \pcntl_fork();
+            $start = hrtime(true);
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
                 $consumer = RingBuffer::attach($buffer->key);
@@ -138,45 +138,45 @@ return new Experiment(
 
                     if ($message === null) {
                         if ($pollGapUs > 0) {
-                            \usleep($pollGapUs);
+                            usleep($pollGapUs);
                         }
 
                         continue;
                     }
 
                     /** @var array{1: int} $sentAt */
-                    $sentAt = \unpack('J', $message);
-                    $latencyNs += \hrtime(true) - $sentAt[1];
+                    $sentAt = unpack('J', $message);
+                    $latencyNs += hrtime(true) - $sentAt[1];
                     ++$received;
                 }
 
-                $usage = \getrusage();
+                $usage = getrusage();
                 $cpu = $usage['ru_utime.tv_sec'] + $usage['ru_utime.tv_usec'] / 1e6
                     + $usage['ru_stime.tv_sec'] + $usage['ru_stime.tv_usec'] / 1e6;
 
                 // Reported through the buffer itself, now that it is drained.
-                $consumer->push(\pack('J', (int) ($latencyNs / $messages)));
-                $consumer->push(\pack('J', (int) ($cpu * 1e6)));
+                $consumer->push(pack('J', (int) ($latencyNs / $messages)));
+                $consumer->push(pack('J', (int) ($cpu * 1e6)));
 
                 exit(0);
             }
 
             for ($i = 0; $i < $messages; $i++) {
-                \usleep($producerGapUs);
+                usleep($producerGapUs);
 
-                while (!$buffer->push(\pack('J', \hrtime(true)))) {
+                while (!$buffer->push(pack('J', hrtime(true)))) {
                 }
             }
 
-            \pcntl_waitpid($pid, $status);
-            $wallMs = (\hrtime(true) - $start) / 1e6;
+            pcntl_waitpid($pid, $status);
+            $wallMs = (hrtime(true) - $start) / 1e6;
 
             /** @var array{1: int} $meanLatency */
-            $meanLatency = \unpack('J', (string) $buffer->pop());
+            $meanLatency = unpack('J', (string) $buffer->pop());
             /** @var array{1: int} $consumerCpu */
-            $consumerCpu = \unpack('J', (string) $buffer->pop());
+            $consumerCpu = unpack('J', (string) $buffer->pop());
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "%12s | %7.1f ms | %11.1f us | %9.1f ms\n",
                 $pollGapUs === 0 ? 'spin, no gap' : $pollGapUs . ' us',
                 $wallMs,

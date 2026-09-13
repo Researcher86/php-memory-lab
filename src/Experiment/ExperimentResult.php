@@ -20,7 +20,8 @@ final readonly class ExperimentResult
         public array $options,
         public array $measurements,
         public float $elapsedSeconds,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array<string, mixed>

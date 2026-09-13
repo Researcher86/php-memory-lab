@@ -44,11 +44,11 @@ return new Experiment(
             $semaphore = Semaphore::attach(SharedMemorySegment::randomKey());
             $segment->put($counterIndex, 0);
 
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $pids = [];
 
             for ($c = 0; $c < $children; $c++) {
-                $pid = \pcntl_fork();
+                $pid = pcntl_fork();
 
                 if ($pid === 0) {
                     $ownSegment = SharedMemorySegment::attach($segmentKey);
@@ -83,10 +83,10 @@ return new Experiment(
             }
 
             foreach ($pids as $pid) {
-                \pcntl_waitpid($pid, $status);
+                pcntl_waitpid($pid, $status);
             }
 
-            $elapsedMs = (\hrtime(true) - $start) / 1e6;
+            $elapsedMs = (hrtime(true) - $start) / 1e6;
             $survived = $segment->has($counterIndex);
             $total = $survived ? (int) $segment->get($counterIndex) : 0;
 
@@ -96,31 +96,31 @@ return new Experiment(
             return ['total' => $total, 'survived' => $survived, 'elapsedMs' => $elapsedMs];
         }
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nEvery run: %d increments per child, expected total = children x %d.\n\n",
             $increments,
             $increments,
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "%8s | %8s | %19s | %19s\n",
             'children',
             'expected',
             'unsynchronized',
             'semaphore-protected',
         ));
-        $out->write(\str_repeat('-', 64) . "\n");
+        $out->write(str_repeat('-', 64) . "\n");
 
         foreach ([1, 2, 4, 8, 16] as $children) {
             $expected = $children * $increments;
             $raced = count_together($children, $increments, $counterIndex, false);
             $locked = count_together($children, $increments, $counterIndex, true);
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "%8d | %8d | %19s | %6d (%6.1f ms)\n",
                 $children,
                 $expected,
                 $raced['survived']
-                    ? \sprintf('%6d (%5.1f%% lost)', $raced['total'], 100 * ($expected - $raced['total']) / $expected)
+                    ? sprintf('%6d (%5.1f%% lost)', $raced['total'], 100 * ($expected - $raced['total']) / $expected)
                     : '  counter destroyed',
                 $locked['total'],
                 $locked['elapsedMs'],

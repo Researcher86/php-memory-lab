@@ -43,7 +43,7 @@ return new Experiment(
 
                 $elapsedMs = (hrtime(true) - $start) / 1e6;
 
-                $out->write(\sprintf(
+                $out->write(sprintf(
                     "%-28s time %8.2f ms | PHP %s | RSS %s | Private_Dirty %s (%+d kB) | Shared_Dirty %s\n",
                     $label,
                     $elapsedMs,
@@ -61,16 +61,16 @@ return new Experiment(
         };
 
         $out->write("Rewriting the inherited array in a child (each row a fresh fork + mutation by reference).\n");
-        $out->write(\sprintf("(parent array: %d integers; RSS stays flat for COW -- watch Private_Dirty/Shared_Dirty)\n", $count));
+        $out->write(sprintf("(parent array: %d integers; RSS stays flat for COW -- watch Private_Dirty/Shared_Dirty)\n", $count));
 
         $runChild('in-place: $data[$k] ++', static function (array &$data): void {
-            for ($k = 0, $n = \count($data); $k < $n; $k++) {
+            for ($k = 0, $n = count($data); $k < $n; $k++) {
                 $data[$k]++;
             }
         });
 
         $runChild('fresh: $data = range(...)', static function (array &$data): void {
-            $data = range(1, \count($data));
+            $data = range(1, count($data));
         });
 
         $out->write("In-place rewrites the shared pages, privatising each one it touches (OS copy-on-write).\n");

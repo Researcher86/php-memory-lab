@@ -21,7 +21,7 @@ final class ByteFormatter
         $value = (float) $bytes;
         $index = 0;
 
-        while ($value >= 1024 && $index < \count($units) - 1) {
+        while ($value >= 1024 && $index < count($units) - 1) {
             $value /= 1024;
             ++$index;
         }

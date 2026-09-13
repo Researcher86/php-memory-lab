@@ -38,7 +38,7 @@ return new Experiment(
 
         $run(
             'range(1, N)',
-            static fn (): array => \range(1, $N),
+            static fn (): array => range(1, $N),
         );
 
         $run(
@@ -55,7 +55,7 @@ return new Experiment(
 
         $run(
             'array_fill(0, N, 0)',
-            static fn (): array => \array_fill(0, $N, 0),
+            static fn (): array => array_fill(0, $N, 0),
         );
 
         $out->note('all three hold N integer zvals in a packed array; the loop builds it element by element, range preallocates.');

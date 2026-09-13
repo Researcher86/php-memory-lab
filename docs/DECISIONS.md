@@ -224,3 +224,26 @@ was made. New decisions get appended with a date.
 - Cross-document links point at a file rather than at a phase heading. Phase
   headings in PHASES.md end in ✅, and anchors generated from a heading with an
   emoji differ between Markdown renderers.
+
+## 2026-09-13 — Review: the code style is the sibling project's
+
+- `.php-cs-fixer.dist.php` now switches off `native_function_invocation` and
+  `single_line_empty_body`, and the backslash prefixes those rules had added
+  were removed from every file. `php-worker-pool` has no formatter and is
+  written without them, and matching the sibling project matters more here
+  than either the micro-optimisation or the brevity.
+- `ext-sysvmsg` was removed from `composer.json`, the Dockerfile and CI.
+  Nothing in the project calls `msg_*`, and the reason is written down in
+  `docs/ipc-comparison.md`: a SysV message queue is the socket's semantics
+  with a numeric key instead of a descriptor, and the socket demonstrated all
+  of it first. An extension nobody loads is a platform requirement with no
+  payer.
+- `--duration` was removed from the CLI. No experiment read it, so the option
+  was advertised in the help text and refused by every command that could
+  receive it.
+- `src/Memory/ProcFile.php` holds the pid-to-path-to-read sequence both /proc
+  readers were duplicating, and with it the one fact a caller needs: /proc is
+  Linux, and every read from there fails anywhere else.
+- `src/Cli/Arguments.php` holds the `--name=value` parsing both entry points
+  had grown separately, with validation as exceptions so the caller decides
+  how to fail rather than having `exit(1)` called three frames down.

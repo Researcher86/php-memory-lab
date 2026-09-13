@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Benchmark\Formatter;
 
 use App\Benchmark\BenchmarkReport;
+use RuntimeException;
 
 /**
  * For comparing across runs in a spreadsheet. The environment cannot be a
@@ -43,12 +44,12 @@ final class CsvFormatter implements Formatter
                 $result->name,
                 (string) $result->iterations,
                 (string) $result->repetitions,
-                \sprintf('%.9f', $result->timings->median),
-                \sprintf('%.9f', $result->timings->min),
-                \sprintf('%.9f', $result->timings->max),
-                \sprintf('%.9f', $result->timings->mean),
-                \sprintf('%.9f', $result->timings->p95),
-                \sprintf('%.3f', $result->operationsPerSecond()),
+                sprintf('%.9f', $result->timings->median),
+                sprintf('%.9f', $result->timings->min),
+                sprintf('%.9f', $result->timings->max),
+                sprintf('%.9f', $result->timings->mean),
+                sprintf('%.9f', $result->timings->p95),
+                sprintf('%.3f', $result->operationsPerSecond()),
                 (string) $result->phpDelta,
                 $result->rssDelta === null ? '' : (string) $result->rssDelta,
                 $environment->phpVersion,
@@ -61,7 +62,7 @@ final class CsvFormatter implements Formatter
         $handle = fopen('php://temp', 'r+');
 
         if ($handle === false) {
-            throw new \RuntimeException('Unable to open a buffer for CSV output');
+            throw new RuntimeException('Unable to open a buffer for CSV output');
         }
 
         foreach ($rows as $row) {

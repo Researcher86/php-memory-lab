@@ -36,7 +36,7 @@ return new Experiment(
 
             /** @var int $dirtyDelta */
             $dirtyDelta = $afterWrite->privateDirty - $beforeWrite->privateDirty;
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "child Private_Dirty delta: %s (+%d bytes) - the shared page holding \$data[0] became private\n",
                 \App\Memory\ByteFormatter::format($dirtyDelta),
                 $dirtyDelta,

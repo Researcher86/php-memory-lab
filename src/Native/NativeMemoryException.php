@@ -15,4 +15,6 @@ use RuntimeException;
  * freed pointer is silent corruption - neither raises anything PHP can catch,
  * which is why the checks happen before the call rather than around it.
  */
-final class NativeMemoryException extends RuntimeException {}
+final class NativeMemoryException extends RuntimeException
+{
+}

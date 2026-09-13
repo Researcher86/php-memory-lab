@@ -40,8 +40,8 @@ return new Experiment(
          */
         function cpu_seconds(): float
         {
-            $self = \getrusage();
-            $children = \getrusage(1);
+            $self = getrusage();
+            $children = getrusage(1);
 
             return $self['ru_utime.tv_sec'] + $self['ru_utime.tv_usec'] / 1e6
                 + $self['ru_stime.tv_sec'] + $self['ru_stime.tv_usec'] / 1e6
@@ -55,11 +55,11 @@ return new Experiment(
         function run_ring(int $messages, int $size, int $capacity): array
         {
             $buffer = RingBuffer::create(SharedMemorySegment::randomKey(), $capacity, $size);
-            $payload = \str_repeat('x', $size);
+            $payload = str_repeat('x', $size);
 
             $cpuBefore = cpu_seconds();
-            $start = \hrtime(true);
-            $pid = \pcntl_fork();
+            $start = hrtime(true);
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
                 $producer = RingBuffer::attach($buffer->key);
@@ -88,8 +88,8 @@ return new Experiment(
                 }
             }
 
-            \pcntl_waitpid($pid, $status);
-            $result = ['wallMs' => (\hrtime(true) - $start) / 1e6, 'cpuSeconds' => cpu_seconds() - $cpuBefore];
+            pcntl_waitpid($pid, $status);
+            $result = ['wallMs' => (hrtime(true) - $start) / 1e6, 'cpuSeconds' => cpu_seconds() - $cpuBefore];
             $buffer->destroy();
 
             return $result;
@@ -101,11 +101,11 @@ return new Experiment(
         function run_socket(int $messages, int $size): array
         {
             [$consumer, $producerEnd] = SocketChannel::pair();
-            $payload = \str_repeat('x', $size);
+            $payload = str_repeat('x', $size);
 
             $cpuBefore = cpu_seconds();
-            $start = \hrtime(true);
-            $pid = \pcntl_fork();
+            $start = hrtime(true);
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
                 $consumer->close();
@@ -129,8 +129,8 @@ return new Experiment(
                 $consumer->receive();
             }
 
-            \pcntl_waitpid($pid, $status);
-            $result = ['wallMs' => (\hrtime(true) - $start) / 1e6, 'cpuSeconds' => cpu_seconds() - $cpuBefore];
+            pcntl_waitpid($pid, $status);
+            $result = ['wallMs' => (hrtime(true) - $start) / 1e6, 'cpuSeconds' => cpu_seconds() - $cpuBefore];
             $consumer->close();
 
             return $result;
@@ -155,28 +155,28 @@ return new Experiment(
         {
             $key = SharedMemorySegment::randomKey();
             $slotStride = $size + 4;
-            $segment = \shmop_open($key, 'c', 0666, 32 + $capacity * $slotStride);
+            $segment = shmop_open($key, 'c', 0666, 32 + $capacity * $slotStride);
 
             if ($segment === false) {
                 throw new RuntimeException('unable to create the unsynchronized segment');
             }
 
-            \shmop_write($segment, \pack('N8', 0, 0, $capacity, $size, 0, 0, 0, 0), 0);
-            $payload = \str_repeat('x', $size);
+            shmop_write($segment, pack('N8', 0, 0, $capacity, $size, 0, 0, 0, 0), 0);
+            $payload = str_repeat('x', $size);
 
             $position = static function (\Shmop $segment, int $offset): int {
                 /** @var array{1: int} $field */
-                $field = \unpack('N', \shmop_read($segment, $offset, 4));
+                $field = unpack('N', shmop_read($segment, $offset, 4));
 
                 return $field[1];
             };
 
             $cpuBefore = cpu_seconds();
-            $start = \hrtime(true);
-            $pid = \pcntl_fork();
+            $start = hrtime(true);
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
-                $own = \shmop_open($key, 'w', 0, 0);
+                $own = shmop_open($key, 'w', 0, 0);
 
                 if ($own === false) {
                     exit(1);
@@ -190,8 +190,8 @@ return new Experiment(
                     while (($write = $position($own, 20)) !== -1 && ($write + 1) % $capacity === $position($own, 16)) {
                     }
 
-                    \shmop_write($own, \pack('N', $size) . $payload, 32 + $write * $slotStride);
-                    \shmop_write($own, \pack('N', ($write + 1) % $capacity), 20);
+                    shmop_write($own, pack('N', $size) . $payload, 32 + $write * $slotStride);
+                    shmop_write($own, pack('N', ($write + 1) % $capacity), 20);
                 }
 
                 exit(0);
@@ -205,25 +205,25 @@ return new Experiment(
                 }
 
                 /** @var array{1: int} $prefix */
-                $prefix = \unpack('N', \shmop_read($segment, 32 + $read * $slotStride, 4));
-                \shmop_read($segment, 32 + $read * $slotStride + 4, $prefix[1]);
-                \shmop_write($segment, \pack('N', ($read + 1) % $capacity), 16);
+                $prefix = unpack('N', shmop_read($segment, 32 + $read * $slotStride, 4));
+                shmop_read($segment, 32 + $read * $slotStride + 4, $prefix[1]);
+                shmop_write($segment, pack('N', ($read + 1) % $capacity), 16);
                 ++$received;
             }
 
-            \pcntl_waitpid($pid, $status);
-            $result = ['wallMs' => (\hrtime(true) - $start) / 1e6, 'cpuSeconds' => cpu_seconds() - $cpuBefore];
-            \shmop_delete($segment);
+            pcntl_waitpid($pid, $status);
+            $result = ['wallMs' => (hrtime(true) - $start) / 1e6, 'cpuSeconds' => cpu_seconds() - $cpuBefore];
+            shmop_delete($segment);
 
             return $result;
         }
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\n%s messages per run, ring capacity %d slots.\n\n",
-            \number_format($messages),
+            number_format($messages),
             $capacity,
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "%9s | %-13s | %10s | %14s | %11s | %s\n",
             'message',
             'transport',
@@ -232,7 +232,7 @@ return new Experiment(
             'throughput',
             'CPU seconds',
         ));
-        $out->write(\str_repeat('-', 86) . "\n");
+        $out->write(str_repeat('-', 86) . "\n");
 
         foreach ($sizes as $size) {
             foreach ([
@@ -242,12 +242,12 @@ return new Experiment(
             ] as $name => $run) {
                 $result = $run();
 
-                $out->write(\sprintf(
+                $out->write(sprintf(
                     "%9s | %-13s | %7.1f ms | %14s | %9s/s | %.2f\n",
                     ByteFormatter::format($size),
                     $name,
                     $result['wallMs'],
-                    \number_format($messages / ($result['wallMs'] / 1000)),
+                    number_format($messages / ($result['wallMs'] / 1000)),
                     ByteFormatter::format((int) ($messages * $size / ($result['wallMs'] / 1000))),
                     $result['cpuSeconds'],
                 ));

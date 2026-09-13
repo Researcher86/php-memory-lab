@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Experiment;
 
 use App\Experiment\Experiment;
+use App\Experiment\Options;
 use App\Experiment\Registry;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -18,7 +19,7 @@ final class RegistryTest extends TestCase
     {
         foreach ($this->paths as $path) {
             @unlink($path);
-            @rmdir(\dirname($path));
+            @rmdir(dirname($path));
         }
 
         $this->paths = [];
@@ -32,10 +33,10 @@ final class RegistryTest extends TestCase
      */
     public function testEveryExperimentInTheProjectLoadsAndIsNamedOnce(): void
     {
-        $registry = new Registry(\dirname(__DIR__, 2) . '/experiments');
+        $registry = new Registry(dirname(__DIR__, 2) . '/experiments');
         $experiments = $registry->all();
 
-        self::assertGreaterThan(20, \count($experiments));
+        self::assertGreaterThan(20, count($experiments));
 
         foreach ($experiments as $name => $experiment) {
             self::assertSame($name, $experiment->name, 'the index key is the declared name');
@@ -46,13 +47,13 @@ final class RegistryTest extends TestCase
 
     public function testEveryDeclaredOptionIsOneTheCliKnows(): void
     {
-        $registry = new Registry(\dirname(__DIR__, 2) . '/experiments');
+        $registry = new Registry(dirname(__DIR__, 2) . '/experiments');
 
         foreach ($registry->all() as $name => $experiment) {
             foreach ($experiment->supports as $option) {
                 self::assertArrayHasKey(
                     $option,
-                    \App\Experiment\Options::KNOWN,
+                    Options::KNOWN,
                     $name . ' declares an option the CLI cannot parse',
                 );
             }
@@ -61,7 +62,7 @@ final class RegistryTest extends TestCase
 
     public function testNamesAreSortedSoTheListingIsStable(): void
     {
-        $names = array_keys(new Registry(\dirname(__DIR__, 2) . '/experiments')->all());
+        $names = array_keys(new Registry(dirname(__DIR__, 2) . '/experiments')->all());
         $sorted = $names;
         sort($sorted);
 
@@ -73,12 +74,12 @@ final class RegistryTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Unknown experiment: nothing:here');
 
-        new Registry(\dirname(__DIR__, 2) . '/experiments')->get('nothing:here');
+        new Registry(dirname(__DIR__, 2) . '/experiments')->get('nothing:here');
     }
 
     public function testHasDistinguishesKnownFromUnknown(): void
     {
-        $registry = new Registry(\dirname(__DIR__, 2) . '/experiments');
+        $registry = new Registry(dirname(__DIR__, 2) . '/experiments');
 
         self::assertTrue($registry->has('memory:empty'));
         self::assertFalse($registry->has('memory:nonexistent'));
@@ -117,7 +118,7 @@ final class RegistryTest extends TestCase
 
     public function testAnExperimentIsHandedBackWhole(): void
     {
-        $experiment = new Registry(\dirname(__DIR__, 2) . '/experiments')->get('memory:empty');
+        $experiment = new Registry(dirname(__DIR__, 2) . '/experiments')->get('memory:empty');
 
         self::assertInstanceOf(Experiment::class, $experiment);
         self::assertSame(['elements'], $experiment->supports);

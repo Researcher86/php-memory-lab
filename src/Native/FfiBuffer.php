@@ -47,13 +47,13 @@ final class FfiBuffer
     public static function allocate(int $size): self
     {
         if ($size < 1) {
-            throw new NativeMemoryException(\sprintf('Cannot allocate %d bytes', $size));
+            throw new NativeMemoryException(sprintf('Cannot allocate %d bytes', $size));
         }
 
         $pointer = Libc::malloc($size);
 
         if ($pointer === null) {
-            throw new NativeMemoryException(\sprintf('malloc(%d) returned null', $size));
+            throw new NativeMemoryException(sprintf('malloc(%d) returned null', $size));
         }
 
         return new self($size, $pointer);
@@ -61,7 +61,7 @@ final class FfiBuffer
 
     public function write(int $offset, string $data): void
     {
-        $length = \strlen($data);
+        $length = strlen($data);
         $this->assertWithinBounds($offset, $length);
 
         if ($length === 0) {
@@ -128,11 +128,11 @@ final class FfiBuffer
     private function assertWithinBounds(int $offset, int $length): void
     {
         if ($offset < 0 || $length < 0) {
-            throw new NativeMemoryException(\sprintf('Negative offset (%d) or length (%d)', $offset, $length));
+            throw new NativeMemoryException(sprintf('Negative offset (%d) or length (%d)', $offset, $length));
         }
 
         if ($offset > $this->size || $length > $this->size - $offset) {
-            throw new NativeMemoryException(\sprintf(
+            throw new NativeMemoryException(sprintf(
                 'Access of %d bytes at offset %d runs past the %d-byte buffer',
                 $length,
                 $offset,

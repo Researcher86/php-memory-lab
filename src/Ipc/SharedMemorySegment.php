@@ -52,7 +52,7 @@ final class SharedMemorySegment
         $handle = @shm_attach($key, $size, $permissions);
 
         if ($handle === false) {
-            throw new SharedMemoryException(\sprintf(
+            throw new SharedMemoryException(sprintf(
                 'Unable to attach shared memory segment 0x%x (%d bytes)',
                 $key,
                 $size,
@@ -80,7 +80,7 @@ final class SharedMemorySegment
     public function put(int $index, mixed $value): void
     {
         if (!@shm_put_var($this->requireHandle(), $index, $value)) {
-            throw new SharedMemoryException(\sprintf(
+            throw new SharedMemoryException(sprintf(
                 'Unable to write variable %d into segment 0x%x - too large for the segment?',
                 $index,
                 $this->key,
@@ -96,7 +96,7 @@ final class SharedMemorySegment
         $handle = $this->requireHandle();
 
         if (!shm_has_var($handle, $index)) {
-            throw new SharedMemoryException(\sprintf(
+            throw new SharedMemoryException(sprintf(
                 'Segment 0x%x holds no variable %d',
                 $this->key,
                 $index,
@@ -114,7 +114,7 @@ final class SharedMemorySegment
     public function remove(int $index): void
     {
         if (!@shm_remove_var($this->requireHandle(), $index)) {
-            throw new SharedMemoryException(\sprintf(
+            throw new SharedMemoryException(sprintf(
                 'Unable to remove variable %d from segment 0x%x',
                 $index,
                 $this->key,
@@ -159,7 +159,7 @@ final class SharedMemorySegment
     private function requireHandle(): SysvSharedMemory
     {
         if ($this->handle === null) {
-            throw new SharedMemoryException(\sprintf('Segment 0x%x is no longer attached', $this->key));
+            throw new SharedMemoryException(sprintf('Segment 0x%x is no longer attached', $this->key));
         }
 
         return $this->handle;

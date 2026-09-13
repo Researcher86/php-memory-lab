@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Benchmark;
 
 use App\Memory\MemoryReporter;
+use InvalidArgumentException;
 
 /**
  * Runs a callable often enough, and often enough times, to say something
@@ -27,7 +28,8 @@ final readonly class BenchmarkRunner
         private MemoryReporter $reporter = new MemoryReporter(),
         private int $repetitions = 5,
         private int $warmups = 1,
-    ) {}
+    ) {
+    }
 
     /**
      * @param callable(): mixed $operation
@@ -35,7 +37,7 @@ final readonly class BenchmarkRunner
     public function run(string $name, callable $operation, int $iterations = 1): BenchmarkResult
     {
         if ($iterations < 1) {
-            throw new \InvalidArgumentException(\sprintf('%s: iterations must be at least 1', $name));
+            throw new InvalidArgumentException(sprintf('%s: iterations must be at least 1', $name));
         }
 
         for ($warmup = 0; $warmup < $this->warmups; $warmup++) {

@@ -9,4 +9,6 @@ namespace App\Ipc\Exception;
  * an attempt to use an endpoint that was already closed. Nothing about it can
  * recover - a channel is a pair, and one half of it is gone.
  */
-final class ChannelClosedException extends ChannelException {}
+final class ChannelClosedException extends ChannelException
+{
+}

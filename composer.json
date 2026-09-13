@@ -19,7 +19,6 @@
         "ext-posix": "*",
         "ext-shmop": "*",
         "ext-sockets": "*",
-        "ext-sysvmsg": "*",
         "ext-sysvsem": "*",
         "ext-sysvshm": "*"
     },

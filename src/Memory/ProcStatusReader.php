@@ -25,25 +25,7 @@ final class ProcStatusReader
      */
     public function read(int $pid = 0): array
     {
-        $actualPid = $pid > 0 ? $pid : getmypid();
-
-        if ($actualPid === false) {
-            throw new RuntimeException('Unable to determine process ID');
-        }
-
-        $path = \sprintf('/proc/%d/status', $actualPid);
-
-        if (!is_readable($path)) {
-            throw new RuntimeException(\sprintf('Unable to read %s', $path));
-        }
-
-        $content = file_get_contents($path);
-
-        if ($content === false) {
-            throw new RuntimeException(\sprintf('Unable to read %s', $path));
-        }
-
-        return $this->parse($content);
+        return $this->parse(ProcFile::read('status', $pid));
     }
 
     /**

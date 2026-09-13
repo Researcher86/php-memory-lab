@@ -26,5 +26,6 @@ final readonly class SmapsRollup
         public int $anonymous = 0,
         public int $anonHugePages = 0,
         public int $swap = 0,
-    ) {}
+    ) {
+    }
 }

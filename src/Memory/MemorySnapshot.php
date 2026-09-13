@@ -22,5 +22,6 @@ final readonly class MemorySnapshot
         public ?int $sharedMemory = null,
         public ?int $privateMemory = null,
         public ?int $pss = null,
-    ) {}
+    ) {
+    }
 }

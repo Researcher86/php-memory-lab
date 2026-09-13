@@ -44,7 +44,7 @@ return new Experiment(
                 $dirtyDelta = $after->privateDirty - $before->privateDirty;
                 $sharedDirtyDelta = $after->sharedDirty - $before->sharedDirty;
 
-                $out->write(wordwrap(\sprintf(
+                $out->write(wordwrap(sprintf(
                     "[%d writes] %d elements in place. Time %.2f ms | Private_Dirty +%s (+%dB) | Shared_Dirty %s (%dB) | RSS +%s\n",
                     $writes,
                     $count,

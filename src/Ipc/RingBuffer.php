@@ -108,7 +108,7 @@ final class RingBuffer
         $segment = @shmop_open($key, 'c', 0o666, $size);
 
         if ($segment === false) {
-            throw new RingBufferException(\sprintf('Unable to create a %d-byte segment for 0x%x', $size, $key));
+            throw new RingBufferException(sprintf('Unable to create a %d-byte segment for 0x%x', $size, $key));
         }
 
         $buffer = new self($key, $segment, Semaphore::attach($key));
@@ -128,11 +128,11 @@ final class RingBuffer
         $segment = @shmop_open($key, 'w', 0, 0);
 
         if ($segment === false) {
-            throw new RingBufferException(\sprintf('No ring buffer at 0x%x', $key));
+            throw new RingBufferException(sprintf('No ring buffer at 0x%x', $key));
         }
 
         if (shmop_size($segment) < self::HEADER_SIZE) {
-            throw new RingBufferCorruptedException(\sprintf('Segment 0x%x is too small to hold a header', $key));
+            throw new RingBufferCorruptedException(sprintf('Segment 0x%x is too small to hold a header', $key));
         }
 
         // Validated before the semaphore is attached, and not after: sem_get()
@@ -142,7 +142,7 @@ final class RingBuffer
         $header = self::readHeaderFrom($segment);
 
         if ($header['magic'] !== self::MAGIC) {
-            throw new RingBufferCorruptedException(\sprintf(
+            throw new RingBufferCorruptedException(sprintf(
                 'Segment 0x%x is not a ring buffer (magic 0x%08x, expected 0x%08x)',
                 $key,
                 $header['magic'],
@@ -151,7 +151,7 @@ final class RingBuffer
         }
 
         if ($header['version'] !== self::VERSION) {
-            throw new RingBufferCorruptedException(\sprintf(
+            throw new RingBufferCorruptedException(sprintf(
                 'Ring buffer 0x%x is version %d, this code speaks version %d',
                 $key,
                 $header['version'],
@@ -171,12 +171,12 @@ final class RingBuffer
      */
     public function push(string $message): bool
     {
-        $length = \strlen($message);
+        $length = strlen($message);
 
         /** @var bool $accepted */
         $accepted = $this->transaction(function (array $header) use ($message, $length): array {
             if ($length > $header['slotSize']) {
-                throw new RingBufferException(\sprintf(
+                throw new RingBufferException(sprintf(
                     'Message of %d bytes exceeds the %d-byte slot',
                     $length,
                     $header['slotSize'],
@@ -216,7 +216,7 @@ final class RingBuffer
             $length = $prefix[1];
 
             if ($length > $header['slotSize']) {
-                throw new RingBufferCorruptedException(\sprintf(
+                throw new RingBufferCorruptedException(sprintf(
                     'Slot %d declares %d bytes in a %d-byte slot',
                     $header['readPosition'],
                     $length,
@@ -307,7 +307,7 @@ final class RingBuffer
             $header = $this->readHeader();
 
             if ($header['busyPid'] !== self::READY) {
-                throw new RingBufferCorruptedException(\sprintf(
+                throw new RingBufferCorruptedException(sprintf(
                     'Ring buffer 0x%x was left mid-update by pid %d',
                     $this->key,
                     $header['busyPid'],
@@ -388,10 +388,10 @@ final class RingBuffer
 
         $data = @shmop_read($this->requireSegment(), $offset, $length);
 
-        if (\strlen($data) !== $length) {
-            throw new RingBufferCorruptedException(\sprintf(
+        if (strlen($data) !== $length) {
+            throw new RingBufferCorruptedException(sprintf(
                 'Read %d of %d bytes at offset %d in 0x%x',
-                \strlen($data),
+                strlen($data),
                 $length,
                 $offset,
                 $this->key,
@@ -405,11 +405,11 @@ final class RingBuffer
     {
         $written = @shmop_write($this->requireSegment(), $data, $offset);
 
-        if ($written !== \strlen($data)) {
-            throw new RingBufferException(\sprintf(
+        if ($written !== strlen($data)) {
+            throw new RingBufferException(sprintf(
                 'Wrote %d of %d bytes at offset %d in 0x%x',
                 $written,
-                \strlen($data),
+                strlen($data),
                 $offset,
                 $this->key,
             ));
@@ -419,7 +419,7 @@ final class RingBuffer
     private function requireSegment(): Shmop
     {
         if ($this->segment === null) {
-            throw new RingBufferException(\sprintf('Ring buffer 0x%x was destroyed', $this->key));
+            throw new RingBufferException(sprintf('Ring buffer 0x%x was destroyed', $this->key));
         }
 
         return $this->segment;

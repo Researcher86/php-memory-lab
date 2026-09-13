@@ -28,14 +28,14 @@ return new Experiment(
         $size = $options->size(256 * 1024 * 1024);
         $pageSize = Libc::pageSize();
 
-        $out->write(\sprintf("\nPHP memory_limit: %s\n", (string) \ini_get('memory_limit')));
+        $out->write(sprintf("\nPHP memory_limit: %s\n", (string) ini_get('memory_limit')));
 
         $before = $reporter->snapshot();
         $buffer = FfiBuffer::allocate($size);
         $allocated = $reporter->diff($before, $reporter->snapshot());
 
-        $out->write(\sprintf(
-            "\nmalloc(%s):\n  PHP usage %s   RSS %s   VmSize %s\n",
+        $out->write(sprintf(
+            "nmalloc(%s):\n  PHP usage %s   RSS %s   VmSize %s\n",
             ByteFormatter::format($size),
             ByteFormatter::formatSigned($allocated->phpUsage),
             $allocated->rss === null ? 'n/a' : ByteFormatter::formatSigned($allocated->rss),
@@ -57,7 +57,7 @@ return new Experiment(
 
         $touched = $reporter->diff($touchBefore, $reporter->snapshot());
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nAfter writing one byte per page:\n  PHP usage %s   RSS %s\n",
             ByteFormatter::formatSigned($touched->phpUsage),
             $touched->rss === null ? 'n/a' : ByteFormatter::formatSigned($touched->rss),
@@ -67,7 +67,7 @@ return new Experiment(
         $buffer->free();
         $freed = $reporter->diff($freeBefore, $reporter->snapshot());
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nAfter free():\n  PHP usage %s   RSS %s\n",
             ByteFormatter::formatSigned($freed->phpUsage),
             $freed->rss === null ? 'n/a' : ByteFormatter::formatSigned($freed->rss),
@@ -78,12 +78,12 @@ return new Experiment(
         /*
          * The same size as a PHP value, for contrast.
          */
-        \ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '512M');
         $stringBefore = $reporter->snapshot();
-        $string = \str_repeat('x', $size);
+        $string = str_repeat('x', $size);
         $stringDelta = $reporter->diff($stringBefore, $reporter->snapshot());
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nA PHP string of the same %s (memory_limit raised to 512M first):\n  PHP usage %s   RSS %s\n",
             ByteFormatter::format($size),
             ByteFormatter::formatSigned($stringDelta->phpUsage),
@@ -97,7 +97,7 @@ return new Experiment(
          * allocation whose last reference is dropped without a free() is simply gone
          * - reachable by nobody, returned by nothing, until the process exits.
          */
-        $megabyte = \str_repeat('L', 1024 * 1024);
+        $megabyte = str_repeat('L', 1024 * 1024);
         $leakBefore = $reporter->snapshot();
 
         for ($i = 0; $i < 64; $i++) {
@@ -114,7 +114,7 @@ return new Experiment(
 
         $leakDelta = $reporter->diff($leakBefore, $reporter->snapshot());
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\n64 x 1.00 MiB malloc'd through libc directly and never freed:\n  PHP usage %s   RSS %s\n",
             ByteFormatter::formatSigned($leakDelta->phpUsage),
             $leakDelta->rss === null ? 'n/a' : ByteFormatter::formatSigned($leakDelta->rss),

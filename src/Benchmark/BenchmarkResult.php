@@ -27,7 +27,8 @@ final readonly class BenchmarkResult
         public Timings $timings,
         public int $phpDelta,
         public ?int $rssDelta,
-    ) {}
+    ) {
+    }
 
     /**
      * Based on the median repetition rather than the mean: one repetition

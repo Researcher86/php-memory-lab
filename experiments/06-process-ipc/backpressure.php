@@ -27,18 +27,18 @@ return new Experiment(
          */
         $messageSize = $options->payloadSize(64 * 1024);
         $messages = 40;
-        $consumerDelayMs = \intdiv($options->sleep(20_000), 1_000);
+        $consumerDelayMs = intdiv($options->sleep(20_000), 1_000);
 
         $reporter = new MemoryReporter();
         [$producer, $consumer] = SocketChannel::pair();
 
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
 
         if ($pid === 0) {
             $producer->close();
 
             for ($i = 0; $i < $messages; $i++) {
-                \usleep($consumerDelayMs * 1000);
+                usleep($consumerDelayMs * 1000);
                 $consumer->receive();
             }
 
@@ -49,25 +49,25 @@ return new Experiment(
 
         $consumer->close();
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nProducer sends %d x %s as fast as it can; the consumer sleeps %d ms per message.\n",
             $messages,
             ByteFormatter::format($messageSize),
             $consumerDelayMs,
         ));
-        $out->write(\sprintf("Kernel send buffer: %s\n\n", ByteFormatter::format($producer->sendBufferSize())));
+        $out->write(sprintf("Kernel send buffer: %s\n\n", ByteFormatter::format($producer->sendBufferSize())));
 
-        $payload = \str_repeat('x', $messageSize);
+        $payload = str_repeat('x', $messageSize);
         $before = $reporter->snapshot();
         $blockedNs = 0;
         $acceptedImmediately = 0;
         $stillFree = true;
-        $start = \hrtime(true);
+        $start = hrtime(true);
 
         for ($i = 0; $i < $messages; $i++) {
-            $sendStart = \hrtime(true);
+            $sendStart = hrtime(true);
             $producer->send($payload);
-            $elapsed = \hrtime(true) - $sendStart;
+            $elapsed = hrtime(true) - $sendStart;
 
             // A send that returns in microseconds went into a buffer with room left;
             // one that takes milliseconds waited for the consumer to drain it.
@@ -81,20 +81,20 @@ return new Experiment(
             }
         }
 
-        $totalNs = \hrtime(true) - $start;
+        $totalNs = hrtime(true) - $start;
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Accepted without waiting: %d messages (%s) - the buffers absorbed that much before the producer felt anything.\n",
             $acceptedImmediately,
             ByteFormatter::format($acceptedImmediately * $messageSize),
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Blocked inside send():   %.1f ms of %.1f ms total (%.0f%% of the producer's life).\n",
             $blockedNs / 1e6,
             $totalNs / 1e6,
             100 * $blockedNs / $totalNs,
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Effective rate:          %.1f messages/s, against a consumer capable of %.1f/s.\n",
             $messages / ($totalNs / 1e9),
             1000 / $consumerDelayMs,
@@ -104,7 +104,7 @@ return new Experiment(
         $out->note('the producer barely grows while blocked: a message waiting in the kernel buffer is charged to the kernel, not to this process. An in-process queue in front of the socket would have shown all 40 messages as PHP memory instead.');
 
         $producer->close();
-        \pcntl_waitpid($pid, $status);
+        pcntl_waitpid($pid, $status);
 
         /*
          * The second question: what happens to messages already sent when the
@@ -113,7 +113,7 @@ return new Experiment(
          */
         [$reader, $writer] = SocketChannel::pair();
 
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
 
         if ($pid === 0) {
             $reader->close();
@@ -124,7 +124,7 @@ return new Experiment(
 
             // SIGKILL, not exit(): no destructors, no flush, no chance to close the
             // socket politely. The harshest death a process can have.
-            \posix_kill(\posix_getpid(), SIGKILL);
+            posix_kill(posix_getpid(), SIGKILL);
         }
 
         $writer->close();
@@ -140,11 +140,11 @@ return new Experiment(
         }
 
         $reader->close();
-        \pcntl_waitpid($pid, $status);
+        pcntl_waitpid($pid, $status);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nProducer SIGKILLed after 5 sends: consumer read %d of them, then saw \"%s\".\n",
-            \count($received),
+            count($received),
             $ending,
         ));
 

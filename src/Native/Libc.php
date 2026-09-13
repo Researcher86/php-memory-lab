@@ -50,7 +50,9 @@ final class Libc
 
     private static ?FFI $handle = null;
 
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 
     /** @return int the file descriptor, or a negative number on failure */
     public static function open(string $path, int $flags, int $mode): int
@@ -146,7 +148,7 @@ final class Libc
         $handle = self::handle();
         $errno = (int) $handle->__errno_location()[0];
 
-        return \sprintf('%s (errno %d)', FFI::string($handle->strerror($errno)), $errno);
+        return sprintf('%s (errno %d)', FFI::string($handle->strerror($errno)), $errno);
     }
 
     private static function handle(): FFI

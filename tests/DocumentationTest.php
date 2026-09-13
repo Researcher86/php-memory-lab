@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
+use App\Experiment\Registry;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -31,7 +32,7 @@ final class DocumentationTest extends TestCase
     public function testEveryRelativeLinkResolves(): void
     {
         foreach ([...$this->documents(), self::ROOT . '/README.md'] as $document) {
-            $directory = \dirname($document);
+            $directory = dirname($document);
 
             foreach ($this->linksIn($document) as $target) {
                 // A bare "#anchor" link points inside the same document and
@@ -44,7 +45,7 @@ final class DocumentationTest extends TestCase
 
                 self::assertFileExists(
                     $directory . '/' . $path,
-                    \sprintf('%s links to %s, which does not exist', basename($document), $target),
+                    sprintf('%s links to %s, which does not exist', basename($document), $target),
                 );
             }
         }
@@ -69,7 +70,7 @@ final class DocumentationTest extends TestCase
             foreach (array_unique($matches[1]) as $path) {
                 self::assertFileExists(
                     self::ROOT . '/' . $path,
-                    \sprintf('%s mentions %s, which does not exist', basename($document), $path),
+                    sprintf('%s mentions %s, which does not exist', basename($document), $path),
                 );
             }
         }
@@ -81,7 +82,7 @@ final class DocumentationTest extends TestCase
      */
     public function testEveryExperimentCommandInTheDocsExists(): void
     {
-        $registry = new \App\Experiment\Registry(self::ROOT . '/experiments');
+        $registry = new Registry(self::ROOT . '/experiments');
 
         foreach ([...$this->documents(), self::ROOT . '/README.md'] as $document) {
             $matches = [];
@@ -90,7 +91,7 @@ final class DocumentationTest extends TestCase
             foreach (array_unique($matches[1]) as $name) {
                 self::assertTrue(
                     $registry->has($name),
-                    \sprintf('%s tells the reader to run %s, which no longer exists', basename($document), $name),
+                    sprintf('%s tells the reader to run %s, which no longer exists', basename($document), $name),
                 );
             }
         }
@@ -105,7 +106,7 @@ final class DocumentationTest extends TestCase
             foreach (array_unique($matches[1]) as $suite) {
                 self::assertFileExists(
                     self::ROOT . '/benchmarks/' . $suite . '.php',
-                    \sprintf('%s names benchmark suite %s, which does not exist', basename($document), $suite),
+                    sprintf('%s names benchmark suite %s, which does not exist', basename($document), $suite),
                 );
             }
         }

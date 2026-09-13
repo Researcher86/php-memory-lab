@@ -31,25 +31,25 @@ return new Experiment(
         $semaphore = Semaphore::attach(SharedMemorySegment::randomKey());
         $segment->put($counterIndex, 0);
 
-        $start = \hrtime(true);
+        $start = hrtime(true);
         $pids = [];
 
         for ($c = 0; $c < $children; $c++) {
-            $pid = \pcntl_fork();
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
                 $ownSegment = SharedMemorySegment::attach($segment->key);
                 $ownSemaphore = Semaphore::attach($semaphore->key);
                 $waitedNs = 0;
-                $childStart = \hrtime(true);
+                $childStart = hrtime(true);
 
                 for ($i = 0; $i < $increments; $i++) {
                     // acquire() is timed separately from the critical section: the
                     // wait is contention, the section is work, and telling them apart
                     // is the whole question when a lock looks expensive.
-                    $waitStart = \hrtime(true);
+                    $waitStart = hrtime(true);
                     $ownSemaphore->acquire();
-                    $waitedNs += \hrtime(true) - $waitStart;
+                    $waitedNs += hrtime(true) - $waitStart;
 
                     try {
                         $ownSegment->put($counterIndex, (int) $ownSegment->get($counterIndex) + 1);
@@ -58,7 +58,7 @@ return new Experiment(
                     }
                 }
 
-                $elapsedNs = \hrtime(true) - $childStart;
+                $elapsedNs = hrtime(true) - $childStart;
 
                 // Reporting back through the same shared memory - and under the same
                 // lock, because the rule does not stop applying for one small write.
@@ -75,39 +75,39 @@ return new Experiment(
         }
 
         foreach ($pids as $pid) {
-            \pcntl_waitpid($pid, $status);
+            pcntl_waitpid($pid, $status);
         }
 
-        $elapsedMs = (\hrtime(true) - $start) / 1e6;
+        $elapsedMs = (hrtime(true) - $start) / 1e6;
         $total = (int) $segment->get($counterIndex);
         $expected = $children * $increments;
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\n%d children x %d increments, every one of them under the semaphore.\n",
             $children,
             $increments,
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Counter: %d, expected %d - %s\n",
             $total,
             $expected,
             $total === $expected ? 'exact' : 'WRONG, the lock did not hold',
         ));
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Wall clock: %.1f ms for %d protected updates (%.0f updates/s).\n\n",
             $elapsedMs,
             $expected,
             $expected / ($elapsedMs / 1000),
         ));
 
-        $out->write(\sprintf("%6s | %12s | %12s | %s\n", 'child', 'total', 'waiting', 'share spent waiting'));
-        $out->write(\str_repeat('-', 56) . "\n");
+        $out->write(sprintf("%6s | %12s | %12s | %s\n", 'child', 'total', 'waiting', 'share spent waiting'));
+        $out->write(str_repeat('-', 56) . "\n");
 
         for ($c = 0; $c < $children; $c++) {
             /** @var array{waitedNs: int, elapsedNs: int} $report */
             $report = $segment->get($reportBase + $c);
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "%6d | %9.1f ms | %9.1f ms | %4.1f%%\n",
                 $c,
                 $report['elapsedNs'] / 1e6,
@@ -129,16 +129,16 @@ return new Experiment(
          * value, and nobody undoes a value.
          */
         $acquirableWithin = static function (Semaphore $semaphore, float $seconds): bool {
-            $deadline = \microtime(true) + $seconds;
+            $deadline = microtime(true) + $seconds;
 
-            while (\microtime(true) < $deadline) {
+            while (microtime(true) < $deadline) {
                 if ($semaphore->tryAcquire()) {
                     $semaphore->release();
 
                     return true;
                 }
 
-                \usleep(10_000);
+                usleep(10_000);
             }
 
             return false;
@@ -148,26 +148,26 @@ return new Experiment(
         $handMade = SharedMemorySegment::attach(SharedMemorySegment::randomKey());
         $handMade->put(1, 'free');
 
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
 
         if ($pid === 0) {
             Semaphore::attach($kernelLock->key)->acquire();
-            SharedMemorySegment::attach($handMade->key)->put(1, 'held by ' . \posix_getpid());
+            SharedMemorySegment::attach($handMade->key)->put(1, 'held by ' . posix_getpid());
 
             // SIGKILL while holding both: no shutdown, no destructors, no unlock.
-            \posix_kill(\posix_getpid(), SIGKILL);
+            posix_kill(posix_getpid(), SIGKILL);
         }
 
-        \pcntl_waitpid($pid, $status);
+        pcntl_waitpid($pid, $status);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nHolder SIGKILLed while holding two locks at once:\n  SysV semaphore:       %s\n  flag in shared memory: %s\n",
             $acquirableWithin($kernelLock, 1.0)
                 ? 'acquirable again - the kernel undid the acquisition'
                 : 'STILL HELD',
             $handMade->get(1) === 'free'
                 ? 'free again - impossible, nothing could have reset it'
-                : \sprintf('still says "%s" - every waiter would wait forever', $handMade->get(1)),
+                : sprintf('still says "%s" - every waiter would wait forever', $handMade->get(1)),
         ));
 
         $kernelLock->remove();

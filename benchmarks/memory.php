@@ -12,7 +12,7 @@ use App\Benchmark\Benchmark;
  */
 return [
     new Benchmark('string: str_repeat 1 MiB', 200, static function (): void {
-        $string = \str_repeat('x', 1024 * 1024);
+        $string = str_repeat('x', 1024 * 1024);
         unset($string);
     }),
 
@@ -20,12 +20,12 @@ return [
         $string = '';
 
         for ($i = 0; $i < 1_000; $i++) {
-            $string .= \str_repeat('x', 1024);
+            $string .= str_repeat('x', 1024);
         }
     }),
 
     new Benchmark('array: range(1, 100k)', 200, static function (): void {
-        $array = \range(1, 100_000);
+        $array = range(1, 100_000);
         unset($array);
     }),
 
@@ -64,6 +64,6 @@ return [
             unset($a, $b);
         }
 
-        \gc_collect_cycles();
+        gc_collect_cycles();
     }),
 ];

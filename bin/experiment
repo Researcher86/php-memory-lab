@@ -3,64 +3,47 @@
 
 declare(strict_types=1);
 
-require \dirname(__DIR__) . '/vendor/autoload.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
 
+use App\Cli\Arguments;
 use App\Experiment\ExperimentRunner;
 use App\Experiment\Options;
 use App\Experiment\Output;
 use App\Experiment\Registry;
 
-$registry = new Registry(\dirname(__DIR__) . '/experiments');
-$runner = new ExperimentRunner($registry);
+$registry = new Registry(dirname(__DIR__) . '/experiments');
 
-$arguments = \array_slice($argv, 1);
-$name = null;
-$raw = [];
-$format = 'text';
-$outputPath = null;
+$fail = static function (string $message) use ($registry): never {
+    fwrite(STDERR, $message . "\n\n" . usage($registry));
 
-foreach ($arguments as $argument) {
-    if (\preg_match('/^--([a-z-]+)=(.*)$/', $argument, $matches) === 1) {
-        [, $option, $value] = $matches;
+    exit(1);
+};
 
-        // --format and --output belong to the CLI; everything else is the
-        // experiment's, and Options is what decides whether it exists.
-        match ($option) {
-            'format' => $format = $value,
-            'output' => $outputPath = $value,
-            default => $raw[$option] = $value,
-        };
-
-        continue;
-    }
-
-    if ($name === null && !\str_starts_with($argument, '-')) {
-        $name = $argument;
-
-        continue;
-    }
-
-    fail(\sprintf('Unrecognised argument: %s', $argument), $registry);
+try {
+    // --format and --output belong to this script; everything else is the
+    // experiment's, and Options is what decides whether it exists.
+    $arguments = Arguments::parse(array_slice($argv, 1));
+    $options = Options::fromStrings($arguments->except('format', 'output'));
+} catch (InvalidArgumentException $e) {
+    $fail($e->getMessage());
 }
 
+$name = $arguments->command;
+
 if ($name === null) {
-    \fwrite(STDOUT, usage($registry));
+    fwrite(STDOUT, usage($registry));
 
     exit(1);
 }
 
 if (!$registry->has($name)) {
-    fail(\sprintf('Unknown experiment: %s', $name), $registry);
+    $fail(sprintf('Unknown experiment: %s', $name));
 }
 
-if (!\in_array($format, ['text', 'json'], true)) {
-    fail(\sprintf('Unknown format: %s (text or json)', $format), $registry);
-}
+$format = $arguments->string('format', 'text');
 
-try {
-    $options = Options::fromStrings($raw);
-} catch (InvalidArgumentException $e) {
-    fail($e->getMessage(), $registry);
+if (!in_array($format, ['text', 'json'], true)) {
+    $fail(sprintf('Unknown format: %s (text or json)', $format));
 }
 
 // In JSON mode the prose is suppressed rather than captured: an experiment
@@ -69,53 +52,48 @@ try {
 $output = new Output(STDOUT, quiet: $format === 'json');
 
 try {
-    $result = $runner->run($name, $options, $output);
+    $result = (new ExperimentRunner($registry))->run($name, $options, $output);
 } catch (InvalidArgumentException $e) {
-    fail($e->getMessage(), $registry);
+    $fail($e->getMessage());
 }
 
 $rendered = $format === 'json'
-    ? \json_encode($result->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n"
+    ? json_encode($result->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n"
     : '';
 
-if ($outputPath !== null) {
-    if (\file_put_contents($outputPath, $rendered) === false) {
-        \fwrite(STDERR, \sprintf("Unable to write %s\n", $outputPath));
-
-        exit(1);
-    }
-
-    \fwrite(STDERR, \sprintf("wrote %s\n", $outputPath));
+if (!$arguments->has('output')) {
+    fwrite(STDOUT, $rendered);
 
     exit(0);
 }
 
-\fwrite(STDOUT, $rendered);
+$path = $arguments->string('output', '');
+
+if (file_put_contents($path, $rendered) === false) {
+    fwrite(STDERR, sprintf("Unable to write %s\n", $path));
+
+    exit(1);
+}
+
+fwrite(STDERR, sprintf("wrote %s\n", $path));
 
 function usage(Registry $registry): string
 {
     $usage = "Usage: php bin/experiment <experiment> [options]\n\nExperiments:\n";
 
     foreach ($registry->all() as $name => $experiment) {
-        $usage .= \sprintf("  %-26s %s\n", $name, $experiment->description);
+        $usage .= sprintf("  %-26s %s\n", $name, $experiment->description);
     }
 
     $usage .= "\nCommon options:\n";
 
     foreach (Options::KNOWN as $option => $description) {
-        $usage .= \sprintf("  --%-24s %s\n", $option . '=N', $description);
+        $usage .= sprintf("  --%-24s %s\n", $option . '=N', $description);
     }
 
-    $usage .= \sprintf("  --%-24s %s\n", 'format=text|json', 'prose for a reader, or the measurements as JSON');
-    $usage .= \sprintf("  --%-24s %s\n", 'output=PATH', 'write the JSON result to a file');
-    $usage .= "\nAn experiment refuses an option it does not use; its own list is in its file.\n";
+    $usage .= sprintf("  --%-24s %s\n", 'format=text|json', 'prose for a reader, or the measurements as JSON');
+    $usage .= sprintf("  --%-24s %s\n", 'output=PATH', 'write the JSON result to a file');
+    $usage .= "\nAn experiment refuses an option it does not read; its own list is in its file.\n";
 
     return $usage;
-}
-
-function fail(string $message, Registry $registry): never
-{
-    \fwrite(STDERR, $message . "\n\n" . usage($registry));
-
-    exit(1);
 }

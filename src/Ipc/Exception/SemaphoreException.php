@@ -11,4 +11,6 @@ use RuntimeException;
  * acquire that did not happen means the critical section is running
  * unprotected.
  */
-final class SemaphoreException extends RuntimeException {}
+final class SemaphoreException extends RuntimeException
+{
+}

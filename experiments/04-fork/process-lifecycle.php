@@ -14,25 +14,25 @@ return new Experiment(
         $out->heading('process lifecycle: exit statuses, zombies, signals');
 
         $waitFor = static function (int $pid, string $phase = '') use ($out): int {
-            $waited = \pcntl_waitpid($pid, $status);
+            $waited = pcntl_waitpid($pid, $status);
             $suffix = $phase !== '' ? " ($phase)" : '';
 
-            if (\pcntl_wifsignaled($status)) {
-                $out->write(\sprintf(
+            if (pcntl_wifsignaled($status)) {
+                $out->write(sprintf(
                     "  waitpid -> %d%s, terminated by signal %d\n",
                     $waited,
                     $suffix,
-                    \pcntl_wtermsig($status),
+                    pcntl_wtermsig($status),
                 ));
 
                 return $status;
             }
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "  waitpid -> %d%s, exit status %d\n",
                 $waited,
                 $suffix,
-                \pcntl_wexitstatus($status),
+                pcntl_wexitstatus($status),
             ));
 
             return $status;
@@ -42,7 +42,7 @@ return new Experiment(
          * 1. Normal exit: exit(0) -> wexitstatus 0.
          */
         $out->write("1) normal exit (exit(0)):\n");
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
         if ($pid === 0) {
             exit(0);
         }
@@ -52,7 +52,7 @@ return new Experiment(
          * 2. Non-zero exit: exit(3) -> wexitstatus 3.
          */
         $out->write("\n2) non-zero exit (exit(3)):\n");
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
         if ($pid === 0) {
             exit(3);
         }
@@ -63,20 +63,20 @@ return new Experiment(
          *    visible in /proc/<pid>/status is Z until the parent reaps it.
          */
         $out->write("\n3) zombie: child exits, parent delays waitpid:\n");
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
         if ($pid === 0) {
             exit(0);
         }
 
-        \sleep(1);
+        sleep(1);
         $stateLine = '';
-        foreach (\file('/proc/' . $pid . '/status', \FILE_IGNORE_NEW_LINES) ?: [] as $line) {
-            if (\str_starts_with($line, 'State:')) {
-                $stateLine = \trim($line);
+        foreach (file('/proc/' . $pid . '/status', FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+            if (str_starts_with($line, 'State:')) {
+                $stateLine = trim($line);
                 break;
             }
         }
-        $out->write(\sprintf("  child still unreaped, /proc/%d/status: %s\n", $pid, $stateLine));
+        $out->write(sprintf("  child still unreaped, /proc/%d/status: %s\n", $pid, $stateLine));
         $waitFor($pid, 'reaped after the delay');
 
         /*
@@ -84,14 +84,14 @@ return new Experiment(
          *    wait shows wifsignaled + wtermsig.
          */
         $out->write("\n4) killed by signal (SIGTERM):\n");
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
         if ($pid === 0) {
-            \sleep(30);
+            sleep(30);
             exit(0);
         }
 
-        \usleep(200_000);
-        \posix_kill($pid, \SIGTERM);
+        usleep(200_000);
+        posix_kill($pid, SIGTERM);
         $waitFor($pid, 'after SIGTERM');
 
         $out->note('an unreaped child is a zombie (Z) that holds its pid + exit state but no memory working set; a long-running supervisor must waitpid() to reap.');

@@ -29,5 +29,6 @@ final readonly class Experiment
         public string $description,
         public array $supports,
         public Closure $run,
-    ) {}
+    ) {
+    }
 }

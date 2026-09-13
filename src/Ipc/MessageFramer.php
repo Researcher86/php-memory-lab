@@ -35,10 +35,10 @@ final class MessageFramer
      */
     public static function encode(string $payload): string
     {
-        $length = \strlen($payload);
+        $length = strlen($payload);
 
         if ($length > self::MAX_MESSAGE_LENGTH) {
-            throw new LengthException(\sprintf(
+            throw new LengthException(sprintf(
                 'Payload of %d bytes exceeds the %d-byte frame limit',
                 $length,
                 self::MAX_MESSAGE_LENGTH,
@@ -54,11 +54,11 @@ final class MessageFramer
      */
     public static function decodeHeader(string $header): int
     {
-        if (\strlen($header) !== self::HEADER_LENGTH) {
-            throw new ChannelException(\sprintf(
+        if (strlen($header) !== self::HEADER_LENGTH) {
+            throw new ChannelException(sprintf(
                 'Frame header must be %d bytes, got %d',
                 self::HEADER_LENGTH,
-                \strlen($header),
+                strlen($header),
             ));
         }
 
@@ -67,7 +67,7 @@ final class MessageFramer
         $length = $unpacked[1];
 
         if ($length > self::MAX_MESSAGE_LENGTH) {
-            throw new LengthException(\sprintf(
+            throw new LengthException(sprintf(
                 'Frame declares a %d-byte payload, exceeding the %d-byte frame limit',
                 $length,
                 self::MAX_MESSAGE_LENGTH,

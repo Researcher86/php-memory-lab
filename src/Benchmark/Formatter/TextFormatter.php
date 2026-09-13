@@ -13,8 +13,8 @@ final class TextFormatter implements Formatter
     public function format(BenchmarkReport $report): string
     {
         $environment = $report->environment;
-        $output = \sprintf("Benchmark suite: %s\n", $report->suite);
-        $output .= \sprintf(
+        $output = sprintf("Benchmark suite: %s\n", $report->suite);
+        $output .= sprintf(
             "PHP %s on %s %s, %s x %d, memory_limit %s, cgroup %s\n",
             $environment->phpVersion,
             $environment->os,
@@ -26,14 +26,14 @@ final class TextFormatter implements Formatter
                 ? 'unlimited'
                 : ByteFormatter::format($environment->cgroupMemoryLimit),
         );
-        $output .= \sprintf(
+        $output .= sprintf(
             "OPcache %s, JIT %s, allocator %s\n\n",
             $environment->opcacheEnabled ? 'on' : 'off',
             $environment->jitEnabled ? 'on' : 'off',
             $environment->allocator,
         );
 
-        $output .= \sprintf(
+        $output .= sprintf(
             "%-30s | %8s | %10s %10s %10s | %12s | %10s %10s\n",
             'benchmark',
             'iters',
@@ -47,7 +47,7 @@ final class TextFormatter implements Formatter
         $output .= str_repeat('-', 108) . "\n";
 
         foreach ($report->results as $result) {
-            $output .= \sprintf(
+            $output .= sprintf(
                 "%-30s | %8s | %8.3f ms %8.3f ms %8.3f ms | %12s | %10s %10s\n",
                 $result->name,
                 number_format($result->iterations),

@@ -33,9 +33,9 @@ return new Experiment(
         $refuses = static function (string $title, callable $case) use ($out): void {
             try {
                 $case();
-                $out->write(\sprintf("  %-36s ACCEPTED IT - no check fired\n", $title));
+                $out->write(sprintf("  %-36s ACCEPTED IT - no check fired\n", $title));
             } catch (RingBufferException $e) {
-                $out->write(\sprintf("  %-36s %s\n", $title, $e->getMessage()));
+                $out->write(sprintf("  %-36s %s\n", $title, $e->getMessage()));
             }
         };
 
@@ -47,24 +47,24 @@ return new Experiment(
 
         $refuses('a segment holding other data', static function (): void {
             $key = SharedMemorySegment::randomKey();
-            $foreign = \shmop_open($key, 'c', 0666, 256);
+            $foreign = shmop_open($key, 'c', 0666, 256);
 
             if ($foreign === false) {
                 return;
             }
 
-            \shmop_write($foreign, \str_repeat("\x07", 256), 0);
+            shmop_write($foreign, str_repeat("\x07", 256), 0);
 
             try {
                 RingBuffer::attach($key);
             } finally {
-                \shmop_delete($foreign);
+                shmop_delete($foreign);
             }
         });
 
         $refuses('a segment too small for a header', static function (): void {
             $key = SharedMemorySegment::randomKey();
-            $tiny = \shmop_open($key, 'c', 0666, 8);
+            $tiny = shmop_open($key, 'c', 0666, 8);
 
             if ($tiny === false) {
                 return;
@@ -73,7 +73,7 @@ return new Experiment(
             try {
                 RingBuffer::attach($key);
             } finally {
-                \shmop_delete($tiny);
+                shmop_delete($tiny);
             }
         });
 
@@ -82,10 +82,10 @@ return new Experiment(
 
             // Straight into the header, because a future version of this code is the
             // only thing that could produce it honestly.
-            $raw = \shmop_open($buffer->key, 'w', 0, 0);
+            $raw = shmop_open($buffer->key, 'w', 0, 0);
 
             if ($raw !== false) {
-                \shmop_write($raw, \pack('N', RingBuffer::VERSION + 1), 4);
+                shmop_write($raw, pack('N', RingBuffer::VERSION + 1), 4);
             }
 
             try {
@@ -99,7 +99,7 @@ return new Experiment(
             $buffer = RingBuffer::create(SharedMemorySegment::randomKey(), 2, 16);
 
             try {
-                $buffer->push(\str_repeat('x', 17));
+                $buffer->push(str_repeat('x', 17));
             } finally {
                 $buffer->destroy();
             }
@@ -113,13 +113,13 @@ return new Experiment(
          * only thing that says so.
          */
         $buffer = RingBuffer::create(SharedMemorySegment::randomKey(), 32, 64);
-        $payload = \str_repeat('x', 64);
+        $payload = str_repeat('x', 64);
         $attempts = 0;
         $caught = false;
 
         while (!$caught && $attempts < 50) {
             ++$attempts;
-            $pid = \pcntl_fork();
+            $pid = pcntl_fork();
 
             if ($pid === 0) {
                 $producer = RingBuffer::attach($buffer->key);
@@ -134,9 +134,9 @@ return new Experiment(
             // Long enough to be somewhere inside a push, short enough to still be
             // running. Killing a process at a chosen instruction is not something a
             // test can do, so this is a sampling problem: try until it lands.
-            \usleep(\random_int(200, 3_000));
-            \posix_kill($pid, SIGKILL);
-            \pcntl_waitpid($pid, $status);
+            usleep(random_int(200, 3_000));
+            posix_kill($pid, SIGKILL);
+            pcntl_waitpid($pid, $status);
 
             $caught = $buffer->busyPid() !== 0;
         }
@@ -144,9 +144,9 @@ return new Experiment(
         $out->write("\nA producer SIGKILLed while it held the lock:\n");
 
         if (!$caught) {
-            $out->write(\sprintf("  never landed inside a critical section in %d tries - the window is small\n", $attempts));
+            $out->write(sprintf("  never landed inside a critical section in %d tries - the window is small\n", $attempts));
         } else {
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "  caught on attempt %d: header still names pid %d as mid-update\n",
                 $attempts,
                 $buffer->busyPid(),
@@ -156,10 +156,10 @@ return new Experiment(
                 $buffer->pop();
                 $out->write("  pop() returned anyway - the check did not fire\n");
             } catch (RingBufferCorruptedException $e) {
-                $out->write(\sprintf("  pop() refuses: %s\n", $e->getMessage()));
+                $out->write(sprintf("  pop() refuses: %s\n", $e->getMessage()));
             }
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "  the semaphore itself is fine - the kernel released it when the holder died,\n  which is exactly why the buffer needed its own flag to look untrustworthy.\n",
             ));
         }

@@ -21,7 +21,7 @@ return new Experiment(
         $region = (int) ($count / $children);
         $data = range(0, $count - 1);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Parent built a 1M-int array, forks %d children; every child writes a disjunct 250k-element region.\n",
             $children,
         ));
@@ -41,7 +41,7 @@ return new Experiment(
                     $data[$k]++;
                 }
 
-                $out->write(\sprintf(
+                $out->write(sprintf(
                     "child %d wrote [%d..%d): Private_Dirty %s\n",
                     $c,
                     $start,

@@ -22,5 +22,6 @@ final readonly class Benchmark
         public string $name,
         public int $iterations,
         public Closure $run,
-    ) {}
+    ) {
+    }
 }

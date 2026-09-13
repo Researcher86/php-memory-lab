@@ -220,7 +220,7 @@ final class RingBufferTest extends TestCase
 
         $received = [];
 
-        while (\count($received) < $messages) {
+        while (count($received) < $messages) {
             $message = $buffer->pop();
 
             if ($message === null) {

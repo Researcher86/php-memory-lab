@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
         libffi-dev \
     && pecl install xdebug \
     && docker-php-ext-enable xdebug \
-    && docker-php-ext-install pcntl posix sockets sysvmsg sysvsem sysvshm shmop ffi \
+    && docker-php-ext-install pcntl posix sockets sysvsem sysvshm shmop ffi \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

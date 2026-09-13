@@ -45,7 +45,9 @@ final class SocketChannel
     /** Bytes pulled off the wire that do not yet add up to a frame. */
     private string $buffer = '';
 
-    public function __construct(private readonly Socket $socket) {}
+    public function __construct(private readonly Socket $socket)
+    {
+    }
 
     /**
      * Two connected endpoints, ready to be split across a fork().
@@ -77,13 +79,13 @@ final class SocketChannel
         $this->assertUsable();
 
         $frame = MessageFramer::encode($payload);
-        $length = \strlen($frame);
+        $length = strlen($frame);
         $sent = 0;
 
         // Held in a variable because PHPStan's socket_send() stub lists the
         // flags it knows and MSG_NOSIGNAL is not among them, though PHP
         // defines it and the kernel honours it.
-        $noSignal = \MSG_NOSIGNAL;
+        $noSignal = MSG_NOSIGNAL;
 
         while ($sent < $length) {
             // A stream socket may accept fewer bytes than offered, so the
@@ -96,7 +98,7 @@ final class SocketChannel
             if ($written === false || $written === 0) {
                 $this->peerGone = true;
 
-                throw new ChannelClosedException(\sprintf(
+                throw new ChannelClosedException(sprintf(
                     'Peer stopped reading after %d of %d frame bytes',
                     $sent,
                     $length,
@@ -165,7 +167,7 @@ final class SocketChannel
     {
         $size = socket_get_option($this->socket, SOL_SOCKET, SO_SNDBUF);
 
-        if (!\is_int($size)) {
+        if (!is_int($size)) {
             throw new ChannelException(
                 'socket_get_option(SO_SNDBUF) failed: ' . socket_strerror(socket_last_error($this->socket)),
             );
@@ -198,14 +200,14 @@ final class SocketChannel
      */
     private function takeFrame(): ?string
     {
-        if (\strlen($this->buffer) < MessageFramer::HEADER_LENGTH) {
+        if (strlen($this->buffer) < MessageFramer::HEADER_LENGTH) {
             return null;
         }
 
         $length = MessageFramer::decodeHeader(substr($this->buffer, 0, MessageFramer::HEADER_LENGTH));
         $frameLength = MessageFramer::HEADER_LENGTH + $length;
 
-        if (\strlen($this->buffer) < $frameLength) {
+        if (strlen($this->buffer) < $frameLength) {
             return null;
         }
 

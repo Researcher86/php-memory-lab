@@ -19,18 +19,18 @@ use App\Native\MappedFile;
  */
 $total = 16 * 1024 * 1024;
 $block = 64 * 1024;
-$chunk = \str_repeat('x', $block);
-$path = \sys_get_temp_dir() . '/benchmark-native-' . \bin2hex(\random_bytes(4)) . '.bin';
+$chunk = str_repeat('x', $block);
+$path = sys_get_temp_dir() . '/benchmark-native-' . bin2hex(random_bytes(4)) . '.bin';
 
 $buffer = FfiBuffer::allocate($total);
 $mapping = MappedFile::open($path, $total);
-$string = \str_repeat("\0", $total);
+$string = str_repeat("\0", $total);
 $offset = 8 * 1024 * 1024;
 
-\register_shutdown_function(static function () use ($buffer, $mapping, $path): void {
+register_shutdown_function(static function () use ($buffer, $mapping, $path): void {
     $buffer->free();
     $mapping->unmap();
-    @\unlink($path);
+    @unlink($path);
 });
 
 return [
@@ -51,11 +51,11 @@ return [
     }),
 
     new Benchmark('PHP string: read 64 KiB', 20_000, static function () use ($string, $offset, $block): void {
-        \substr($string, $offset, $block);
+        substr($string, $offset, $block);
     }),
 
     new Benchmark('PHP string: write 64 KiB', 200, static function () use ($string, $offset, $chunk): void {
-        \substr_replace($string, $chunk, $offset, \strlen($chunk));
+        substr_replace($string, $chunk, $offset, strlen($chunk));
     }),
 
     new Benchmark('mapped file: msync 16 MiB', 200, static function () use ($mapping): void {

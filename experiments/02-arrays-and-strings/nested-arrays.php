@@ -43,7 +43,7 @@ return new Experiment(
             static function () use ($ROWS, $COLS, $out): array {
                 $table = [];
                 for ($r = 0; $r < $ROWS; ++$r) {
-                    $table[] = \range(0, $COLS - 1);
+                    $table[] = range(0, $COLS - 1);
                 }
 
                 return $table;
@@ -53,7 +53,7 @@ return new Experiment(
         $run(
             "same table, rows share one frozen row (reference)",
             static function () use ($ROWS, $COLS, $out): array {
-                $frozenRow = \range(0, $COLS - 1);
+                $frozenRow = range(0, $COLS - 1);
                 $table = [];
                 for ($r = 0; $r < $ROWS; ++$r) {
                     $table[] = $frozenRow; // same zval referenced ROWS times
@@ -66,7 +66,7 @@ return new Experiment(
         $run(
             "compact CSV-like version, one flat array of ints ROWS*COLS",
             static function () use ($ROWS, $COLS, $out): array {
-                return \range(0, $ROWS * $COLS - 1);
+                return range(0, $ROWS * $COLS - 1);
             },
         );
 

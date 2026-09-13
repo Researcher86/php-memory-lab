@@ -25,41 +25,41 @@ return new Experiment(
          * So a mapping costs address space, which is free, instead of memory, which
          * is not - and the difference between the two is measurable in one run.
          */
-        $path = \sys_get_temp_dir() . '/mmap-lazy-' . \bin2hex(\random_bytes(4)) . '.bin';
+        $path = sys_get_temp_dir() . '/mmap-lazy-' . bin2hex(random_bytes(4)) . '.bin';
         $size = $options->size(256 * 1024 * 1024);
         $pageSize = Libc::pageSize();
 
         /** @return array{minor: int, major: int} */
         function faults(): array
         {
-            $usage = \getrusage();
+            $usage = getrusage();
 
             return ['minor' => $usage['ru_minflt'], 'major' => $usage['ru_majflt']];
         }
 
         // A file of known content, written once so the page cache is warm and the
         // numbers below measure mapping rather than disk.
-        $chunk = \str_repeat('m', 1024 * 1024);
-        $handle = \fopen($path, 'wb');
+        $chunk = str_repeat('m', 1024 * 1024);
+        $handle = fopen($path, 'wb');
 
         if ($handle === false) {
             throw new RuntimeException('unable to create ' . $path);
         }
 
-        for ($written = 0; $written < $size; $written += \strlen($chunk)) {
-            \fwrite($handle, $chunk);
+        for ($written = 0; $written < $size; $written += strlen($chunk)) {
+            fwrite($handle, $chunk);
         }
 
-        \fclose($handle);
+        fclose($handle);
 
         $reporter = new MemoryReporter();
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nFile: %s of %s, page size %s, PHP memory_limit %s\n",
-            \basename($path),
+            basename($path),
             ByteFormatter::format($size),
             ByteFormatter::format($pageSize),
-            (string) \ini_get('memory_limit'),
+            (string) ini_get('memory_limit'),
         ));
 
         $before = $reporter->snapshot();
@@ -70,7 +70,7 @@ return new Experiment(
         $afterMap = $reporter->snapshot();
         $mapDelta = $reporter->diff($before, $afterMap);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nAfter mmap() of the whole file:\n  VmSize %s   RSS %s   PHP usage %s   minor faults %+d\n",
             $mapDelta->virtualMemory === null ? 'n/a' : ByteFormatter::formatSigned($mapDelta->virtualMemory),
             $mapDelta->rss === null ? 'n/a' : ByteFormatter::formatSigned($mapDelta->rss),
@@ -89,20 +89,20 @@ return new Experiment(
         foreach ([1, 16, 256, 4096] as $pages) {
             $touchBefore = $reporter->snapshot();
             $faultsBefore = faults();
-            $start = \hrtime(true);
+            $start = hrtime(true);
             $sum = 0;
 
             for ($page = 0; $page < $pages; $page++) {
-                $sum += \strlen($mapping->read($page * $pageSize, 1));
+                $sum += strlen($mapping->read($page * $pageSize, 1));
             }
 
-            $elapsedMs = (\hrtime(true) - $start) / 1e6;
+            $elapsedMs = (hrtime(true) - $start) / 1e6;
             $touchDelta = $reporter->diff($touchBefore, $reporter->snapshot());
             $faultDelta = faults()['minor'] - $faultsBefore['minor'];
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "  touched %6s pages (%9s): RSS %10s   minor faults %+6d   %9s per fault   %6.2f ms\n",
-                \number_format($pages),
+                number_format($pages),
                 ByteFormatter::format($pages * $pageSize),
                 $touchDelta->rss === null ? 'n/a' : ByteFormatter::formatSigned($touchDelta->rss),
                 $faultDelta,
@@ -119,7 +119,7 @@ return new Experiment(
         $mapping->unmap();
         $afterUnmap = $reporter->snapshot();
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nAfter munmap():\n  VmSize %s   RSS %s\n",
             ($d = $reporter->diff($afterMap, $afterUnmap))->virtualMemory === null ? 'n/a' : ByteFormatter::formatSigned($d->virtualMemory),
             $d->rss === null ? 'n/a' : ByteFormatter::formatSigned($d->rss),
@@ -134,16 +134,16 @@ return new Experiment(
          */
         // Raised only for this comparison, and only because the string needs it.
         // The mapping above ran under the default limit untouched.
-        \ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '512M');
 
         $readBefore = $reporter->snapshot();
-        $start = \hrtime(true);
-        $contents = \file_get_contents($path);
-        $readMs = (\hrtime(true) - $start) / 1e6;
+        $start = hrtime(true);
+        $contents = file_get_contents($path);
+        $readMs = (hrtime(true) - $start) / 1e6;
         $readDelta = $reporter->diff($readBefore, $reporter->snapshot());
 
-        $out->write(\sprintf(
-            "\nfile_get_contents() of the same %s (memory_limit raised to 512M to allow it):\n  PHP usage %s   RSS %s   %.1f ms\n",
+        $out->write(sprintf(
+            "nfile_get_contents() of the same %s (memory_limit raised to 512M to allow it):\n  PHP usage %s   RSS %s   %.1f ms\n",
             ByteFormatter::format($size),
             ByteFormatter::formatSigned($readDelta->phpUsage),
             $readDelta->rss === null ? 'n/a' : ByteFormatter::formatSigned($readDelta->rss),
@@ -151,7 +151,7 @@ return new Experiment(
         ));
 
         unset($contents);
-        \unlink($path);
+        unlink($path);
 
         $out->note('the mapping paid for the 16.00 MiB it touched; file_get_contents() paid for all 256.00 MiB, because a PHP string has no way to be partly present - and had to be allowed a larger memory_limit to do it.');
         $out->note('this is why a mapped file is the right shape for a large index, a database page cache or a read-mostly dataset, and the wrong shape for anything that is going to be scanned once from end to end anyway.');

@@ -22,7 +22,8 @@ final readonly class Timings
         public float $mean,
         public float $median,
         public float $p95,
-    ) {}
+    ) {
+    }
 
     /**
      * @param non-empty-list<float> $samples seconds per repetition
@@ -30,7 +31,7 @@ final readonly class Timings
     public static function of(array $samples): self
     {
         sort($samples);
-        $count = \count($samples);
+        $count = count($samples);
 
         return new self(
             min: $samples[0],
@@ -50,7 +51,7 @@ final readonly class Timings
      */
     private static function percentile(array $sorted, float $fraction): float
     {
-        $count = \count($sorted);
+        $count = count($sorted);
 
         if ($count === 1) {
             return $sorted[0];

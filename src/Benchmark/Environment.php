@@ -28,19 +28,20 @@ final readonly class Environment
         public bool $jitEnabled,
         public string $allocator,
         public string $kernel,
-    ) {}
+    ) {
+    }
 
     public static function detect(): self
     {
         return new self(
-            phpVersion: \PHP_VERSION,
-            os: \PHP_OS_FAMILY,
+            phpVersion: PHP_VERSION,
+            os: PHP_OS_FAMILY,
             architecture: php_uname('m'),
             cpu: self::cpuModel(),
             cpuCount: self::cpuCount(),
-            memoryLimit: (string) \ini_get('memory_limit'),
+            memoryLimit: (string) ini_get('memory_limit'),
             cgroupMemoryLimit: self::cgroupMemoryLimit(),
-            opcacheEnabled: filter_var(\ini_get('opcache.enable_cli'), FILTER_VALIDATE_BOOL),
+            opcacheEnabled: filter_var(ini_get('opcache.enable_cli'), FILTER_VALIDATE_BOOL),
             jitEnabled: self::jitEnabled(),
             // The engine allocator can be switched off entirely, at which
             // point every PHP allocation goes straight to malloc and the PHP
@@ -121,7 +122,7 @@ final readonly class Environment
             // cgroup v1 reports "no limit" as a number near PHP_INT_MAX.
             $limit = (int) $value;
 
-            return $limit > 0 && $limit < \PHP_INT_MAX / 2 ? $limit : null;
+            return $limit > 0 && $limit < PHP_INT_MAX / 2 ? $limit : null;
         }
 
         return null;
@@ -129,13 +130,13 @@ final readonly class Environment
 
     private static function jitEnabled(): bool
     {
-        if (!\function_exists('opcache_get_status')) {
+        if (!function_exists('opcache_get_status')) {
             return false;
         }
 
         $status = @opcache_get_status(false);
 
-        return \is_array($status) && ($status['jit']['enabled'] ?? false) === true;
+        return is_array($status) && ($status['jit']['enabled'] ?? false) === true;
     }
 
     /**

@@ -27,14 +27,15 @@ final readonly class Options
         'children' => 'child processes to fork',
         'iterations' => 'times to repeat the measured operation',
         'payload-size' => 'bytes per message',
-        'duration' => 'seconds to keep running',
         'sleep' => 'microseconds to pause between steps',
     ];
 
     /**
      * @param array<string, int> $values
      */
-    private function __construct(private array $values) {}
+    private function __construct(private array $values)
+    {
+    }
 
     /**
      * @param array<string, string> $raw option name => raw string value
@@ -48,7 +49,7 @@ final readonly class Options
 
         foreach ($raw as $name => $value) {
             if (!isset(self::KNOWN[$name])) {
-                throw new InvalidArgumentException(\sprintf(
+                throw new InvalidArgumentException(sprintf(
                     'Unknown option --%s. Known options: %s',
                     $name,
                     implode(', ', array_keys(self::KNOWN)),
@@ -56,7 +57,7 @@ final readonly class Options
             }
 
             if (preg_match('/^\d+$/', $value) !== 1 || (int) $value < 1) {
-                throw new InvalidArgumentException(\sprintf(
+                throw new InvalidArgumentException(sprintf(
                     '--%s must be a positive integer, got "%s"',
                     $name,
                     $value,
@@ -97,11 +98,6 @@ final readonly class Options
     public function payloadSize(int $default): int
     {
         return $this->values['payload-size'] ?? $default;
-    }
-
-    public function duration(int $default): int
-    {
-        return $this->values['duration'] ?? $default;
     }
 
     public function sleep(int $default): int

@@ -25,19 +25,19 @@ return new Experiment(
         $statusReader = new ProcStatusReader();
 
         $forkChild = static function () {
-            \usleep(800_000);
+            usleep(800_000);
             exit(0);
         };
 
         foreach ([1, 2, 4, 8, 16] as $childrenCount) {
             $baseline = $reporter->snapshot();
-            $start = \microtime(true);
+            $start = microtime(true);
 
             $children = [];
             for ($i = 0; $i < $childrenCount; ++$i) {
-                $pid = \pcntl_fork();
+                $pid = pcntl_fork();
                 if ($pid === -1) {
-                    \fwrite(STDERR, "fork() failed\n");
+                    fwrite(STDERR, "fork() failed\n");
                     exit(1);
                 }
                 if ($pid === 0) {
@@ -46,9 +46,9 @@ return new Experiment(
                 $children[] = $pid;
             }
 
-            $forkTimeMs = (\microtime(true) - $start) * 1000;
+            $forkTimeMs = (microtime(true) - $start) * 1000;
 
-            \usleep(150_000); // let the children run their tiny sleep
+            usleep(150_000); // let the children run their tiny sleep
             $during = $reporter->snapshot();
 
             $childrenRss = 0;
@@ -59,7 +59,7 @@ return new Experiment(
 
             $totalRss = (int) $during->rss + $childrenRss;
 
-            $out->write(\sprintf(
+            $out->write(sprintf(
                 "children %2d | forks %.2f ms (%.2f ms/fork) | parent RSS %-9s | parent PSS %-9s | children RSS %-9s | approx total RSS %s\n",
                 $childrenCount,
                 $forkTimeMs,
@@ -71,7 +71,7 @@ return new Experiment(
             ));
 
             foreach ($children as $pid) {
-                \pcntl_waitpid($pid, $status);
+                pcntl_waitpid($pid, $status);
             }
         }
 

@@ -33,7 +33,7 @@ return new Experiment(
             }
 
             $out->smaps('child, after reading whole array', $smaps->read());
-            $out->write(\sprintf("child read %d elements, sum=%d (array untouched)\n", $count, $sum));
+            $out->write(sprintf("child read %d elements, sum=%d (array untouched)\n", $count, $sum));
             usleep(400_000);
             exit(0);
         }

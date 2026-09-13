@@ -13,4 +13,6 @@ namespace App\Ipc\Exception;
  * back, so the only honest responses are to refuse the buffer or to format a
  * new one and accept that its contents are gone.
  */
-final class RingBufferCorruptedException extends RingBufferException {}
+final class RingBufferCorruptedException extends RingBufferException
+{
+}

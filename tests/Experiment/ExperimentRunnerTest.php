@@ -20,8 +20,8 @@ final class ExperimentRunnerTest extends TestCase
     {
         foreach ($this->paths as $path) {
             @unlink($path);
-            @rmdir(\dirname($path));
-            @rmdir(\dirname($path, 2));
+            @rmdir(dirname($path));
+            @rmdir(dirname($path, 2));
         }
 
         $this->paths = [];

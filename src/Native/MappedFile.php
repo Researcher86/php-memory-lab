@@ -61,7 +61,7 @@ final class MappedFile
         $descriptor = Libc::open($path, Libc::O_RDWR | Libc::O_CREAT, 0o644);
 
         if ($descriptor < 0) {
-            throw new NativeMemoryException(\sprintf('Unable to open %s: %s', $path, Libc::lastError()));
+            throw new NativeMemoryException(sprintf('Unable to open %s: %s', $path, Libc::lastError()));
         }
 
         // The file must be at least as long as the mapping. Mapping past the
@@ -71,7 +71,7 @@ final class MappedFile
             $error = Libc::lastError();
             Libc::close($descriptor);
 
-            throw new NativeMemoryException(\sprintf('Unable to size %s to %d bytes: %s', $path, $size, $error));
+            throw new NativeMemoryException(sprintf('Unable to size %s to %d bytes: %s', $path, $size, $error));
         }
 
         $address = Libc::mmap(
@@ -86,7 +86,7 @@ final class MappedFile
             $error = Libc::lastError();
             Libc::close($descriptor);
 
-            throw new NativeMemoryException(\sprintf('Unable to map %s: %s', $path, $error));
+            throw new NativeMemoryException(sprintf('Unable to map %s: %s', $path, $error));
         }
 
         return new self($path, $size, $shared, $address, $descriptor);
@@ -107,7 +107,7 @@ final class MappedFile
 
     public function write(int $offset, string $data): void
     {
-        $length = \strlen($data);
+        $length = strlen($data);
         $this->assertWithinBounds($offset, $length);
 
         if ($length === 0) {
@@ -129,7 +129,7 @@ final class MappedFile
     public function flush(): void
     {
         if (Libc::msync($this->requireAddress(), $this->size, Libc::MS_SYNC) !== 0) {
-            throw new NativeMemoryException(\sprintf('Unable to flush %s: %s', $this->path, Libc::lastError()));
+            throw new NativeMemoryException(sprintf('Unable to flush %s: %s', $this->path, Libc::lastError()));
         }
     }
 
@@ -168,11 +168,11 @@ final class MappedFile
     private function assertWithinBounds(int $offset, int $length): void
     {
         if ($offset < 0 || $length < 0) {
-            throw new NativeMemoryException(\sprintf('Negative offset (%d) or length (%d)', $offset, $length));
+            throw new NativeMemoryException(sprintf('Negative offset (%d) or length (%d)', $offset, $length));
         }
 
         if ($offset + $length > $this->size) {
-            throw new NativeMemoryException(\sprintf(
+            throw new NativeMemoryException(sprintf(
                 'Access of %d bytes at offset %d runs past the %d-byte mapping of %s',
                 $length,
                 $offset,
@@ -185,7 +185,7 @@ final class MappedFile
     private function requireAddress(): CData
     {
         if ($this->address === null) {
-            throw new NativeMemoryException(\sprintf('The mapping of %s was already unmapped', $this->path));
+            throw new NativeMemoryException(sprintf('The mapping of %s was already unmapped', $this->path));
         }
 
         return $this->address;

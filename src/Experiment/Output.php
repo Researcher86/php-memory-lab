@@ -30,9 +30,10 @@ final class Output
      * @param resource $stream
      */
     public function __construct(
-        private readonly mixed $stream = \STDOUT,
+        private readonly mixed $stream = STDOUT,
         private readonly bool $quiet = false,
-    ) {}
+    ) {
+    }
 
     public function line(string $line = ''): void
     {
@@ -49,13 +50,13 @@ final class Output
     /** printf into the stream, for tables built column by column. */
     public function printf(string $format, int|float|string ...$arguments): void
     {
-        $this->write(\sprintf($format, ...$arguments));
+        $this->write(sprintf($format, ...$arguments));
     }
 
     public function heading(string $title): void
     {
-        $this->line(\sprintf('Experiment: %s', $title));
-        $this->line(\sprintf('PID: %d', (int) getmypid()));
+        $this->line(sprintf('Experiment: %s', $title));
+        $this->line(sprintf('PID: %d', (int) getmypid()));
     }
 
     /**
@@ -80,7 +81,7 @@ final class Output
     public function delta(string $label, MemoryDiff $diff): void
     {
         $this->line();
-        $this->line(\sprintf('Delta %s:', $label));
+        $this->line(sprintf('Delta %s:', $label));
         $this->printf("  PHP usage: %s\n", ByteFormatter::formatSigned($diff->phpUsage));
         $this->printf("  RSS:       %s\n", self::signedBytes($diff->rss));
         $this->printf("  Private:   %s\n", self::signedBytes($diff->privateMemory));

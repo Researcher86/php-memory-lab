@@ -26,10 +26,10 @@ return new Experiment(
          */
         function segment_row(int $key): ?array
         {
-            $lines = \file('/proc/sysvipc/shm', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+            $lines = file('/proc/sysvipc/shm', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
 
-            foreach (\array_slice($lines, 1) as $line) {
-                $columns = \preg_split('/\s+/', \trim($line)) ?: [];
+            foreach (array_slice($lines, 1) as $line) {
+                $columns = preg_split('/\s+/', trim($line)) ?: [];
 
                 if (isset($columns[0]) && (int) $columns[0] === $key) {
                     return ['size' => (int) $columns[3], 'attached' => (int) $columns[6]];
@@ -43,10 +43,10 @@ return new Experiment(
         $key = SharedMemorySegment::randomKey();
         $segment = SharedMemorySegment::attach($key, 1024 * 1024);
 
-        $out->write(\sprintf("\nSegment key 0x%x attached by pid %d.\n", $key, \getmypid()));
+        $out->write(sprintf("\nSegment key 0x%x attached by pid %d.\n", $key, getmypid()));
 
         $row = segment_row($key);
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "Kernel says: size %s, %d process(es) attached.\n",
             ByteFormatter::format($row['size'] ?? 0),
             $row['attached'] ?? 0,
@@ -61,11 +61,11 @@ return new Experiment(
         $segment->put(1, $original);
 
         $copy = $segment->get(1);
-        \assert(\is_array($copy));
+        assert(is_array($copy));
         $copy['counter'] = 999;
         $segment->put(2, $copy);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nStored counter=1, read it back, set the copy to 999, stored it separately.\n  index 1 is still %d - modifying what get() returned changed nothing shared.\n",
             $segment->get(1)['counter'],
         ));
@@ -75,9 +75,9 @@ return new Experiment(
         $segment->put(3, $object);
         $restored = $segment->get(3);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "  an object round-trips by value too: same class %s, same id %d, different instance (%s).\n",
-            \get_debug_type($restored),
+            get_debug_type($restored),
             $restored->id,
             $restored === $object ? 'identical - impossible' : 'as expected',
         ));
@@ -85,30 +85,30 @@ return new Experiment(
         /*
          * Point two: that serialization has a price, and it is paid on every access.
          */
-        $rows = \array_fill(0, 5_000, ['id' => 1, 'name' => 'user', 'score' => 10]);
+        $rows = array_fill(0, 5_000, ['id' => 1, 'name' => 'user', 'score' => 10]);
         $iterations = 50;
 
-        $start = \hrtime(true);
+        $start = hrtime(true);
         for ($i = 0; $i < $iterations; $i++) {
             $segment->put(10, $rows);
         }
-        $putNs = (\hrtime(true) - $start) / $iterations;
+        $putNs = (hrtime(true) - $start) / $iterations;
 
-        $start = \hrtime(true);
+        $start = hrtime(true);
         for ($i = 0; $i < $iterations; $i++) {
             $segment->get(10);
         }
-        $getNs = (\hrtime(true) - $start) / $iterations;
+        $getNs = (hrtime(true) - $start) / $iterations;
 
-        $start = \hrtime(true);
+        $start = hrtime(true);
         for ($i = 0; $i < $iterations; $i++) {
             $localCopy = $rows;
         }
-        $copyNs = (\hrtime(true) - $start) / $iterations;
+        $copyNs = (hrtime(true) - $start) / $iterations;
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nA 5,000-row array (%s serialized):\n  put()  %7.3f ms\n  get()  %7.3f ms\n  a plain PHP copy of the same array: %.6f ms (refcount++, nothing moves)\n",
-            ByteFormatter::format(\strlen(\serialize($rows))),
+            ByteFormatter::format(strlen(serialize($rows))),
             $putNs / 1e6,
             $getNs / 1e6,
             $copyNs / 1e6,
@@ -124,10 +124,10 @@ return new Experiment(
 
         for ($size = 256; $size <= 8192; $size += 256) {
             try {
-                $small->put(1, \str_repeat('x', $size));
+                $small->put(1, str_repeat('x', $size));
                 $stored = $size;
             } catch (SharedMemoryException) {
-                $out->write(\sprintf(
+                $out->write(sprintf(
                     "\nA 4.00 KiB segment refused a %s payload; the largest it took was %s.\n",
                     ByteFormatter::format($size),
                     ByteFormatter::format($stored),
@@ -145,12 +145,12 @@ return new Experiment(
          * RssShmem, which is part of RSS and no part of memory_get_usage().
          */
         $beforeTouch = $reporter->snapshot();
-        $segment->put(20, \str_repeat('x', 512 * 1024));
+        $segment->put(20, str_repeat('x', 512 * 1024));
         $segment->get(20);
         $afterTouch = $reporter->snapshot();
         $touchDelta = $reporter->diff($beforeTouch, $afterTouch);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nWriting and reading 512.00 KiB through the segment:\n  PHP usage %s   RSS %s   RssShmem %s\n",
             ByteFormatter::formatSigned($touchDelta->phpUsage),
             $touchDelta->rss === null ? 'n/a' : ByteFormatter::formatSigned($touchDelta->rss),
@@ -167,24 +167,24 @@ return new Experiment(
         $segment->detach();
         $row = segment_row($key);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "\nAfter detach(): the segment is %s, now with %d process(es) attached.\n",
             $row === null ? 'gone' : 'still there',
             $row['attached'] ?? 0,
         ));
 
-        $pid = \pcntl_fork();
+        $pid = pcntl_fork();
 
         if ($pid === 0) {
             SharedMemorySegment::attach($key);
             // SIGKILL: no destructors, no cleanup, no chance to detach politely.
-            \posix_kill(\posix_getpid(), SIGKILL);
+            posix_kill(posix_getpid(), SIGKILL);
         }
 
-        \pcntl_waitpid($pid, $status);
+        pcntl_waitpid($pid, $status);
         $row = segment_row($key);
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "After a child attached and was SIGKILLed: segment %s (%d attached).\n",
             $row === null ? 'gone' : 'still there',
             $row['attached'] ?? 0,
@@ -192,7 +192,7 @@ return new Experiment(
 
         SharedMemorySegment::attach($key)->destroy();
 
-        $out->write(\sprintf(
+        $out->write(sprintf(
             "After an explicit destroy(): segment %s.\n",
             segment_row($key) === null ? 'gone' : 'STILL THERE - leaked',
         ));
