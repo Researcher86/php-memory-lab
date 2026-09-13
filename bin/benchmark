@@ -3,4 +3,125 @@
 
 declare(strict_types=1);
 
-fwrite(STDOUT, "The benchmark CLI is introduced in phase 10.\n");
+require \dirname(__DIR__) . '/vendor/autoload.php';
+
+use App\Benchmark\Benchmark;
+use App\Benchmark\BenchmarkReport;
+use App\Benchmark\BenchmarkRunner;
+use App\Benchmark\Environment;
+use App\Benchmark\Formatter\CsvFormatter;
+use App\Benchmark\Formatter\Formatter;
+use App\Benchmark\Formatter\JsonFormatter;
+use App\Benchmark\Formatter\TextFormatter;
+
+$suiteDirectory = \dirname(__DIR__) . '/benchmarks';
+$suites = [];
+
+foreach (\glob($suiteDirectory . '/*.php') ?: [] as $file) {
+    $suites[\basename($file, '.php')] = $file;
+}
+
+$usage = "Usage: php bin/benchmark <suite> [options]\n\n"
+    . "Suites:\n"
+    . \implode('', \array_map(static fn (string $s): string => "  {$s}\n", \array_keys($suites)))
+    . "\nOptions:\n"
+    . "  --format=text|json|csv   output format (default: text)\n"
+    . "  --output=PATH            write to a file instead of stdout\n"
+    . "  --iterations=N           override every benchmark's iteration count\n"
+    . "  --repetitions=N          timed repetitions per benchmark (default: 5)\n"
+    . "  --warmups=N              discarded repetitions before timing (default: 1)\n";
+
+$arguments = \array_slice($argv, 1);
+$suite = null;
+$options = [];
+
+foreach ($arguments as $argument) {
+    if (\preg_match('/^--([a-z-]+)=(.*)$/', $argument, $matches) === 1) {
+        $options[$matches[1]] = $matches[2];
+
+        continue;
+    }
+
+    if ($suite === null && !\str_starts_with($argument, '-')) {
+        $suite = $argument;
+
+        continue;
+    }
+
+    \fwrite(STDERR, "Unrecognised argument: {$argument}\n\n" . $usage);
+
+    exit(1);
+}
+
+if ($suite === null) {
+    \fwrite(STDOUT, $usage);
+
+    exit(1);
+}
+
+if (!isset($suites[$suite])) {
+    \fwrite(STDERR, "Unknown suite: {$suite}\n\n" . $usage);
+
+    exit(1);
+}
+
+/** @var list<Benchmark> $benchmarks */
+$benchmarks = require $suites[$suite];
+
+$positiveOption = static function (array $options, string $name, ?int $default) use ($usage): ?int {
+    if (!isset($options[$name])) {
+        return $default;
+    }
+
+    $value = (int) $options[$name];
+
+    if ($value < 1) {
+        \fwrite(STDERR, "--{$name} must be a positive integer\n\n" . $usage);
+
+        exit(1);
+    }
+
+    return $value;
+};
+
+$iterations = $positiveOption($options, 'iterations', null);
+$runner = new BenchmarkRunner(
+    repetitions: (int) $positiveOption($options, 'repetitions', 5),
+    warmups: (int) $positiveOption($options, 'warmups', 1),
+);
+
+$formatters = ['text' => new TextFormatter(), 'json' => new JsonFormatter(), 'csv' => new CsvFormatter()];
+$format = $options['format'] ?? 'text';
+
+if (!isset($formatters[$format])) {
+    \fwrite(STDERR, "Unknown format: {$format}\n\n" . $usage);
+
+    exit(1);
+}
+
+/** @var Formatter $formatter */
+$formatter = $formatters[$format];
+$results = [];
+
+foreach ($benchmarks as $benchmark) {
+    // Progress on stderr, so `--format=json > file` stays valid JSON.
+    \fwrite(STDERR, \sprintf("running %s ...\n", $benchmark->name));
+    $results[] = $runner->run($benchmark->name, $benchmark->run, $iterations ?? $benchmark->iterations);
+}
+
+$rendered = $formatter->format(new BenchmarkReport($suite, Environment::detect(), $results));
+$output = $options['output'] ?? null;
+
+if ($output === null) {
+    \fwrite(STDOUT, $rendered);
+
+    exit(0);
+}
+
+if (\file_put_contents($output, $rendered) === false) {
+    \fwrite(STDERR, "Unable to write {$output}\n");
+
+    exit(1);
+}
+
+\fwrite(STDERR, \sprintf("wrote %s\n", $output));

@@ -655,7 +655,7 @@ Understand memory allocated outside the PHP engine.
 
 ---
 
-## Phase 10 — Benchmark Harness
+## Phase 10 — Benchmark Harness ✅
 
 ### Goal
 
@@ -664,22 +664,29 @@ output shape.
 
 ### Tasks
 
-- [ ] 10.1 `BenchmarkRunner`
-  - `run($name, $callback, $iterations = 1): BenchmarkResult`
+- [x] 10.1 `BenchmarkRunner`
+  - `run($name, $operation, $iterations = 1): BenchmarkResult`, with
+    `repetitions` and `warmups` configured per runner
   - `src/Benchmark/BenchmarkRunner.php`
-- [ ] 10.2 `BenchmarkResult`
-  - readonly: `name`, `iterations`, `elapsedSeconds`, `operationsPerSecond`,
-    `memoryDelta`, `rssDelta`
-- [ ] 10.3 Output formats
-  - human text, JSON, CSV (`src/Benchmark/…Formatter`)
-- [ ] 10.4 Benchmark rules
-  - record PHP version, OS, CPU, container limits, iterations, warm-up,
-    payload size, process count, sync method, JIT/OPcache status
-  - never present one measurement as universal truth
-- [ ] 10.5 Benchmark repetitions
-  - warm-up, multiple repetitions, min/max/average/median, optional
-    percentiles, `operations/sec`
-  - `benchmarks/`, results to `var/results/`
+- [x] 10.2 `BenchmarkResult`
+  - readonly: `name`, `iterations`, `repetitions`, `elapsedSeconds`,
+    `timings`, `phpDelta`, `rssDelta`, plus `operationsPerSecond()` and
+    `secondsPerOperation()` derived from the median
+- [x] 10.3 Output formats
+  - `src/Benchmark/Formatter/` — `TextFormatter`, `JsonFormatter`,
+    `CsvFormatter` behind one `Formatter` interface
+- [x] 10.4 Benchmark rules
+  - `Environment::detect()` records PHP version, OS, kernel, CPU and core
+    count, `memory_limit`, the cgroup memory limit, OPcache, JIT and the
+    allocator, and every report carries it
+  - `docs/BENCHMARKS.md` states the rules, including that no result here is
+    universal — which the text output repeats in its own footer
+- [x] 10.5 Benchmark repetitions
+  - warm-up repetitions run and are discarded, timed repetitions produce a
+    `Timings` distribution (min/max/mean/median/p95), and `ops/sec` comes from
+    the median
+  - `benchmarks/memory.php`, `benchmarks/ipc.php`, `benchmarks/native.php`;
+    results to `var/results/` via `--output`
 
 ### Definition of Done
 
@@ -688,10 +695,29 @@ output shape.
 
 ### Tests
 
-- `tests/Benchmark/BenchmarkRunnerTest.php`
-  - warm-up handling, repetition statistics (min/max/mean/median),
-    result shape
-- Output-formatter tests for text/JSON/CSV (planned).
+- `tests/Benchmark/BenchmarkRunnerTest.php` — iterations per repetition,
+  warm-ups running but not being timed, the result's shape, `ops/sec` coming
+  from the median, the memory delta covering the whole timed run, and zero
+  iterations being refused
+- `tests/Benchmark/TimingsTest.php` — a single sample, unsorted input, the
+  mean following an outlier where the median does not, nearest-rank median on
+  an even count, and the 95th percentile of twenty samples
+- `tests/Benchmark/FormatterTest.php` — the environment appearing in all three
+  formats, valid JSON with both memory views, a null RSS delta staying null
+  rather than becoming zero, and one CSV header plus one row per result
+
+### Notes
+
+- `bin/benchmark` is a real CLI now: suites discovered from `benchmarks/`,
+  `--format`, `--output`, `--iterations`, `--repetitions`, `--warmups`.
+  Progress goes to stderr so that `--format=json > file` stays valid JSON.
+- The iteration count belongs to the `Benchmark` rather than to the run,
+  because it is a property of the operation. A single global default would
+  make either the socket round trip or the million-element allocation
+  meaningless.
+- Suites create their sockets, segments and mappings once and release them in
+  a shutdown function. A benchmark that leaks a segment per iteration measures
+  the leak.
 
 ---
 

@@ -111,6 +111,7 @@ built and test-ready today.
 |---|---|
 | **[docs/PHASES.md](docs/PHASES.md)** | how it was built - the full plan, phase by phase, each with Goal / Tasks / Definition of Done / Tests |
 | **[docs/DECISIONS.md](docs/DECISIONS.md)** | what was decided and why: PHP 8.5, `App\` namespace, no `extension_loaded()` checks, plan folded |
+| **[docs/BENCHMARKS.md](docs/BENCHMARKS.md)** (Phase 10) | how the harness runs, how to read a report, and why no result here is universal |
 | **[docs/memory-model.md](docs/memory-model.md)** (Phase 2) | zvals, refcounting, hash tables, packed arrays, arenas, allocator, GC |
 | **docs/php-memory-vs-rss.md** (Phase 1) | why the two measurements differ, when freed memory stays resident, PSS |
 | **docs/fork-and-cow.md** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
@@ -356,8 +357,9 @@ and a child that dies mid-frame.
 
 ## Phase 10 — Benchmark Harness
 
-* [ ] `BenchmarkRunner` / `BenchmarkResult` (readonly)
-* [ ] text / JSON / CSV output; warm-up, repetitions, min/max/mean/median
+* [x] `BenchmarkRunner` / `BenchmarkResult` / `Timings` (readonly)
+* [x] text / JSON / CSV output; warm-up, repetitions, min/max/mean/median/p95
+* [x] every report records its environment; `benchmarks/memory|ipc|native`
 
 ## Phase 11 — Experiments CLI
 

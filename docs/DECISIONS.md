@@ -168,3 +168,21 @@ was made. New decisions get appended with a date.
 - The unsafe ownership experiments stay out of the automated test suite and
   run each case in a forked child. Several of them end the process by design,
   which is the result being demonstrated rather than a problem to work around.
+
+## 2026-09-13 — Phase 10: the iteration count belongs to the benchmark
+
+- A `Benchmark` carries its own `iterations`, because the right number is a
+  property of the operation: a socket round trip needs twenty thousand to rise
+  above timer noise and a 100,000-element allocation needs fifty. `--iterations`
+  exists as an override for quick runs, not as the normal way to set it.
+- `operationsPerSecond()` is derived from the median repetition rather than
+  the mean. On a shared machine one repetition routinely loses its CPU, and
+  the mean follows it; `TimingsTest` asserts exactly that difference.
+- Percentiles are nearest-rank and not interpolated. With five to nine
+  samples, interpolating invents precision the measurement does not have.
+- `Timings` keeps its samples where `php-worker-pool`'s `DurationStat`
+  deliberately does not. The constraint is opposite: a benchmark holds a
+  handful of floats for a few seconds, a Master would hold an unbounded stream
+  for the life of the process.
+- Benchmark progress goes to stderr. `--format=json > file` has to stay valid
+  JSON.
