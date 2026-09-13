@@ -34,6 +34,9 @@ $scripts = [
     'ring:throughput' => __DIR__ . '/../experiments/08-ring-buffer/throughput.php',
     'ring:pacing' => __DIR__ . '/../experiments/08-ring-buffer/pacing.php',
     'ring:failures' => __DIR__ . '/../experiments/08-ring-buffer/failure-modes.php',
+    'mmap:lazy' => __DIR__ . '/../experiments/09-mmap/lazy-loading.php',
+    'mmap:modes' => __DIR__ . '/../experiments/09-mmap/shared-vs-private.php',
+    'mmap:failures' => __DIR__ . '/../experiments/09-mmap/failure-modes.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
@@ -63,7 +66,10 @@ $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "  shm:race                lost updates at 1/2/4/8/16 writers (Phase 6)\n"
     . "  ring:throughput         ring buffer vs socket vs no lock (Phase 7)\n"
     . "  ring:pacing             full, empty, and the cost of polling (Phase 7)\n"
-    . "  ring:failures           bad magic, bad version, a killed writer (Phase 7)\n";
+    . "  ring:failures           bad magic, bad version, a killed writer (Phase 7)\n"
+    . "  mmap:lazy               a mapping is a promise, not a read (Phase 8)\n"
+    . "  mmap:modes              MAP_SHARED vs MAP_PRIVATE, PSS, msync (Phase 8)\n"
+    . "  mmap:failures           bounds, double unmap, SIGBUS on truncation (Phase 8)\n";
 
 $command = $argv[1] ?? null;
 

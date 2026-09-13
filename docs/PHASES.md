@@ -519,7 +519,7 @@ queue.
 
 ---
 
-## Phase 8 — mmap
+## Phase 8 — mmap ✅
 
 ### Goal
 
@@ -527,37 +527,62 @@ Understand memory-mapped files and their relationship to virtual memory.
 
 ### Tasks
 
-- [ ] 8.1 Basic concepts
-  - file-backed and anonymous mappings, `MAP_SHARED` / `MAP_PRIVATE`,
-    page faults, lazy loading, dirty pages, persistence, mapping size,
-    truncation, `msync()`, unmapping
-- [ ] 8.2 Implementation options
-  - choose from FFI→libc, small C helper, PHP extension, external helper;
-    FFI→libc chosen for the first version
-- [ ] 8.3 `MappedFile` API
-  - `map($path, $size)`, `read($offset, $length)`, `write($offset, $data)`,
-    `flush()`, `unmap()`
+- [x] 8.1 Basic concepts
+  - file-backed mappings, `MAP_SHARED` against `MAP_PRIVATE`, page faults,
+    lazy loading, dirty pages, persistence, mapping size, truncation,
+    `msync()`, unmapping — each one measured rather than asserted
+- [x] 8.2 Implementation options
+  - FFI → libc, as the plan chose. PHP has no `mmap()` and no way to reach
+    the descriptor behind a stream, so the file is opened through libc as well
+  - `src/Native/Libc.php` holds every dynamic FFI call in the project, wrapped
+    in typed methods, so the rest of the lab stays analysable
+- [x] 8.3 `MappedFile` API
+  - `open($path, $size, $shared)`, `read($offset, $length)`,
+    `write($offset, $data)`, `flush()`, `unmap()`, `address()`, `isMapped()`
   - `src/Native/MappedFile.php`
-- [ ] 8.4 Experiments
-  - small/large files, sequential/random read/write, `msync()`, same file
-    in two processes, shared and private mappings, file growth and
-    truncation, page faults
-  - `experiments/09-mmap/`
-- [ ] 8.5 Failure scenarios
-  - too-small file, read/write outside the mapping, unmapping twice,
-    deleted file, truncation while mapped, crash before flush
-  - isolated inside disposable containers
+- [x] 8.4 Experiments
+  - `experiments/09-mmap/lazy-loading.php` — 256 MiB mapped under a 128 MiB
+    `memory_limit`, RSS and page faults as pages are touched, against
+    `file_get_contents()` of the same file
+  - `experiments/09-mmap/shared-vs-private.php` — visibility in both modes
+    across two processes, RSS/PSS/Shared_Dirty accounting, `msync()` cost
+    dirty and clean
+- [x] 8.5 Failure scenarios
+  - `experiments/09-mmap/failure-modes.php` — read and write past the end,
+    negative offsets, a zero-byte mapping, unmapping twice, using an unmapped
+    file, and a file truncated while mapped
+  - the last one is SIGBUS and runs inside a forked child that is expected to
+    die, per the project's rule about unsafe experiments
 
 ### Definition of Done
 
 - `MappedFile` maps, reads, writes, flushes and unmaps real files.
-- Failure scenarios are observed (and contained).
+- Failure scenarios are observed and contained.
 
 ### Tests
 
-- `tests/Native/MappedFileTest.php` — read/write/flush/unmap on temp files
-- Integration: two processes sharing one mapped file (planned; skip when
-  FFI is disabled).
+- `tests/Native/MappedFileTest.php` — round trips, a fresh mapping reading as
+  zeroes, page alignment, the file being grown to the mapping, a shared write
+  reaching the file, a private write not reaching it, bounds in both
+  directions, negative offsets, the last byte being reachable, unmapping
+  twice, use after unmap, a zero-byte mapping, and two processes sharing one
+  mapping of the same file
+
+### Notes
+
+- The headline measurement: mapping 256 MiB costs 220 KiB of RSS and zero page
+  faults, and succeeds under a 128 MiB `memory_limit` — the limit counts what
+  the PHP allocator hands out, and a mapping is not that.
+- Faults come in far below one per page: fifteen faults for four thousand
+  pages touched, about a megabyte each, because the kernel reads ahead and
+  maps whole folios.
+- `MAP_PRIVATE` and `fork()` turn out to be the same mechanism seen from two
+  directions, and they account identically — `Shared_Dirty` becoming
+  `Private_Dirty` when the other sharer leaves, without a byte moving.
+- PHPStan gets one narrow `ignoreErrors` entry, for `method.notFound` in
+  `Libc.php` only: FFI resolves C functions at runtime, so every libc call
+  looks like a call to an undefined method. Confining them to one file is
+  what keeps the rule that narrow.
 
 ---
 

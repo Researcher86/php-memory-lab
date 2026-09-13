@@ -4,3 +4,12 @@ parameters:
         - src
         - bin
         - tests
+    ignoreErrors:
+        # FFI resolves C functions at runtime, so every libc call looks like a
+        # call to an undefined method on FFI. They are all made in this one
+        # file - and wrapped in typed methods there - precisely so that the
+        # rest of the lab stays analysable. The declarations they match are in
+        # the cdef at the bottom of the same class.
+        -
+            identifier: method.notFound
+            path: src/Native/Libc.php

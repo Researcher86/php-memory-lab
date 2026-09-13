@@ -97,7 +97,7 @@ Every file below is standalone enough to open cold.
 | messages stay framed over a byte stream | [`src/Ipc/SocketChannel.php`](src/Ipc/SocketChannel.php) · [`src/Ipc/MessageFramer.php`](src/Ipc/MessageFramer.php) |
 | SysV shared memory differs from raw bytes, and why it races | [`src/Ipc/SharedMemorySegment.php`](src/Ipc/SharedMemorySegment.php) · [`src/Ipc/Semaphore.php`](src/Ipc/Semaphore.php) |
 | a fixed-size shared ring buffer synchronizes one producer/consumer | [`src/Ipc/RingBuffer.php`](src/Ipc/RingBuffer.php) |
-| files map into the address space | `src/Native/MappedFile.php` (Phase 8) |
+| files map into the address space | [`src/Native/MappedFile.php`](src/Native/MappedFile.php) · [`src/Native/Libc.php`](src/Native/Libc.php) |
 | native memory lives outside the engine, and what that unlocks | `src/Native/FfiBuffer.php` (Phase 9) |
 
 Anything marked *Phase N* follows the roadmap below; everything linked is
@@ -116,7 +116,7 @@ built and test-ready today.
 | **docs/fork-and-cow.md** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
 | **docs/ipc-comparison.md** (Phase 12) | Unix socket vs SysV queue vs shared memory vs semaphore vs `mmap` vs FFI |
 | **[docs/shared-memory.md](docs/shared-memory.md)** (Phase 6) | races, atomicity, cleanup, crash consistency, segment lifecycle |
-| **docs/mmap.md** (Phase 8) · **docs/ffi-memory.md** (Phase 9) | mappings and native ownership, with their hazards |
+| **[docs/mmap.md](docs/mmap.md)** (Phase 8) · **docs/ffi-memory.md** (Phase 9) | mappings and native ownership, with their hazards |
 | the rest of this file | the concepts, in depth |
 
 ---
@@ -343,9 +343,10 @@ and a child that dies mid-frame.
 
 ## Phase 8 — mmap
 
-* [ ] `MappedFile`: `map`/`read`/`write`/`flush`/`unmap` (FFI → libc)
-* [ ] file growth/truncation, two mapped processes, msync, failed mappings
-* [ ] `docs/mmap.md`
+* [x] `MappedFile`: `open`/`read`/`write`/`flush`/`unmap` (FFI → libc)
+* [x] lazy loading and page faults, `MAP_SHARED` vs `MAP_PRIVATE` across two processes, `msync`
+* [x] failure scenarios including SIGBUS on truncation, contained in a child
+* [x] `docs/mmap.md`
 
 ## Phase 9 — FFI and Native Memory
 

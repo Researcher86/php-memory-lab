@@ -129,3 +129,22 @@ was made. New decisions get appended with a date.
   pid inside a transaction; a non-zero value on entry means a process died
   between two writes, and the only honest answers are to refuse the buffer or
   to format a new one and accept that its contents are gone.
+
+## 2026-09-13 — Phase 8: every FFI call lives in one file
+
+- `src/Native/Libc.php` is the only place in the project that calls a C
+  function. FFI resolves those at runtime, so each one is invisible to static
+  analysis; wrapping them in typed static methods means the single
+  `ignoreErrors` entry PHPStan needs can name one file and one identifier
+  (`method.notFound`) instead of the whole `src/Native` directory.
+- Pointers are compared against `MAP_FAILED` by reading their address out of a
+  one-element `void*[1]` array, because casting a pointer to an integer type
+  segfaults this PHP build. The alternative — trusting that `mmap()` only
+  fails in ways that return null — is wrong: it returns the address -1.
+- `MappedFile::open()` always `ftruncate()`s the file to the mapping size.
+  Mapping past the end of a file is allowed by the kernel and then kills the
+  process with SIGBUS on first touch, which is a considerably worse way to
+  learn that the file was short.
+- The SIGBUS demonstration runs in a forked child. It is the first experiment
+  in the project whose expected outcome is a dead process, and the project
+  rule about unsafe experiments is what decides where it runs.
