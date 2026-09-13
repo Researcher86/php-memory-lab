@@ -148,34 +148,35 @@ just times out and the run continues.
 # Architecture
 
 ```text
-   EXPERIMENTS                      BENCHMARKS
- 01-memory-basics                  (repeatable,
- 02-arrays-and-strings             env-recorded,
- 03-garbage-collection             text/JSON/CSV)
- 04-fork                ──▶  ┌─────────────────┐
- 05-copy-on-write              │  BenchmarkRunner │
- 06-process-ipc                └─────────────────┘
- 07-shared-memory                    │
- 08-ring-buffer                      ▼
- 09-mmap                    ┌─────────────────┐
- 10-ffi                     │  MemoryReporter  │
-                            └─────────────────┘
-                                    │
-          ┌─────────────────────────┼─────────────────────────┐
-          ▼                         ▼                         ▼
-   ┌───────────────┐        ┌───────────────┐        ┌───────────────┐
-   │   /proc       │        │ smaps_rollup  │        │   PHP         │
-   │  status       │        │  (Rss, Pss,   │        │ counters      │
-   │  VmRSS, Rss*  │        │   shared, …)  │        │ usage/peak    │
-   └───────────────┘        └───────────────┘        └───────────────┘
-                                    │
-                                    ▼
-                            ┌───────────────┐
-                            │  Explanations │  docs/*.md
-                            └───────────────┘
-                                    │
-                                    ▼
-                     Reusable primitives → real backend applications
+                    EXPERIMENTS                       BENCHMARKS
+    01-memory-basics   06-process-ipc       repeatable, env-recorded
+    02-arrays-strings  07-shared-memory     min / max / mean / median
+    03-garbage-coll.   08-ring-buffer       text / JSON / CSV
+    04-fork            09-mmap
+    05-copy-on-write   10-ffi
+                         │                                 │
+                         └────────────────┬────────────────┘
+                                          ▼
+                             ┌────────────────────────┐
+                             │     MemoryReporter     │
+                             └────────────────────────┘
+                                          │
+               ┌──────────────────────────┼──────────────────────────┐
+               ▼                          ▼                          ▼
+    ┌────────────────────┐     ┌────────────────────┐     ┌────────────────────┐
+    │ /proc/self/status  │     │    smaps_rollup    │     │    PHP counters    │
+    │  VmRSS, RssAnon,   │     │ Pss, Shared_Dirty, │     │ memory_get_usage() │
+    │  VmSize, RssShmem  │     │   Private_Dirty    │     │  peak, real usage  │
+    └────────────────────┘     └────────────────────┘     └────────────────────┘
+               │                          │                          │
+               └──────────────────────────┼──────────────────────────┘
+                                          ▼
+                             ┌────────────────────────┐
+                             │      Explanations      │   docs/*.md
+                             └────────────────────────┘
+                                          │
+                                          ▼
+          Reusable primitives  →  real backend applications
 ```
 
 ---
@@ -245,24 +246,21 @@ the kernel copies the faulted page and the writer keeps its private copy.
 Reads never cost anything; writes are lazy and page-grained.
 
 ```text
-before fork        after fork            after child writes
-┌──────────┐       ┌──────────┐          ┌──────────┐
-│  parent  │       │  parent  │          │  parent  │
-│  ────┐   │       │  ────┐   │          │  ────┐   │
-│      ▼   │       │      ▼   │          │      ▼   │
-│  ┌─────┐ │       │  ┌─────┐ │          │  ┌─────┐ │
-│  │page │ │       │  │page │ │          │  │page │ │
-│  └─────┘ │  ──▶  │  └─────┘ │  ──▶     │  └─────┘ │
-│      ▲   │       │  ┌─────┐ │          │  ┌─────┐ │
-│      │   │       │  │page │ │          │  │page │◄ ── copied, private
-│  ┌─────┐ │       │  └─────┘ │          │  └─────┘ │
-│  │page │ │       │      ▲   │          │          │
-│  └─────┘ │       │      │   │          │  ┌─────┐ │
-└──────────┘       │ child│   │          │  │page │ │  child
-                   └───┬──┘   │          │  └─────┘ │
-                       │      │          └──────────┘
-                       └──────┘
-                    pages are shared  write ⇒ page copied (private dirty)
+          before fork          after fork             after the child writes
+
+          parent              parent         child          parent       child
+        ┌────────┐          ┌────────┐    ┌────────┐      ┌────────┐  ┌────────┐
+        │ vaddr  │          │ vaddr  │    │ vaddr  │      │ vaddr  │  │ vaddr  │
+        └────┬───┘          └────┬───┘    └────┬───┘      └────┬───┘  └────┬───┘
+             │                   └──────┬──────┘               │           │
+             ▼                          ▼                      ▼           ▼
+        ╔════════╗                 ╔════════╗             ╔════════╗  ╔════════╗
+        ║  page  ║                 ║  page  ║             ║  page  ║  ║ page'  ║
+        ╚════════╝                 ╚════════╝             ╚════════╝  ╚════════╝
+
+    one mapping,          one page, two mappings:     the write faulted; the
+    one page              RSS counts it in both,      writer's page is private
+                          PSS counts it half each     now - Private_Dirty +4 KiB
 ```
 
 The experiments measure the transition with RSS, PSS and private-dirty
