@@ -378,7 +378,7 @@ A baseline IPC implementation to compare against shared memory later.
 
 ---
 
-## Phase 6 — SysV Shared Memory and Semaphores
+## Phase 6 — SysV Shared Memory and Semaphores ✅
 
 ### Goal
 
@@ -387,39 +387,58 @@ needs synchronization.
 
 ### Tasks
 
-- [ ] 6.1 Shared memory segment
-  - `shm_attach($key, $size, 0666)`
-  - `src/Ipc/SharedMemorySegment.php` — `put()`, `get()`, `remove()`,
-    `detach()`
-  - document that PHP SysV shared memory serializes values — it is *not*
-    a raw shared byte buffer
-- [ ] 6.2 Semaphores
-  - `sem_get()`, `sem_acquire()`, `sem_release()`
-  - protected counter: parent creates shm + semaphore, forks children,
-    each child increments the shared counter, parent waits, final value
-    verified
-- [ ] 6.3 Race condition experiment
-  - same counter without synchronization
-  - expected vs actual result, number of lost updates
-  - repeated with one / two / four / eight / sixteen children
+- [x] 6.1 Shared memory segment
+  - `shm_attach($key, $size, 0666)` behind `SharedMemorySegment::attach()`
+  - `src/Ipc/SharedMemorySegment.php` — `put()`, `get()`, `has()`,
+    `remove()`, `detach()`, `destroy()`
+  - documented and measured: PHP SysV shared memory serializes values — it is
+    *not* a raw shared byte buffer
+- [x] 6.2 Semaphores
+  - `src/Ipc/Semaphore.php` — `acquire()`, `tryAcquire()`, `release()`,
+    `synchronized()`, `remove()`
+  - protected counter: parent creates the segment and the semaphore, forks
+    children, each increments under the lock, the final value is verified
+    exact, and the time each child spends *waiting* is reported separately
+    from the time it spends working
+  - `experiments/07-shared-memory/protected-counter.php`
+- [x] 6.3 Race condition experiment
+  - the same counter without synchronization, at one / two / four / eight /
+    sixteen children: expected against actual, and the share of updates lost
   - `experiments/07-shared-memory/race-condition.php`
-- [ ] 6.4 Shared memory limitations
+- [x] 6.4 Shared memory limitations
   - serialization overhead, segment size, synchronization requirements,
-    cleanup problems, stale segments, process crashes, ABI/layout
-    concerns; differences from POSIX shm, `mmap()`, raw shared memory
-  - captured in `docs/shared-memory.md`
+    `RssShmem` accounting, stale segments, crash consistency, and the
+    comparison against the Phase 5 socket
+  - `experiments/07-shared-memory/segment-lifecycle.php` and
+    `docs/shared-memory.md`
 
 ### Definition of Done
 
-- Protected counter always reaches its expected value.
-- Race experiment records lost updates per child count.
+- The protected counter always reaches its expected value.
+- The race experiment records what is lost per child count — including the
+  point where the counter stops existing at all.
 
 ### Tests
 
-- `tests/Ipc/SemaphoreTest.php` — lifecycle and acquisition/release
-- Integration: `tests/Ipc/SharedMemorySegmentTest.php` — put/get/remove
-  across processes (skip when the SysV extensions are unavailable, which the
-  container guarantees will not happen).
+- `tests/Ipc/SemaphoreTest.php` — acquire/release cycles, `tryAcquire()`,
+  `synchronized()` releasing on the failure path, use after `remove()`, and a
+  two-child protected counter that must land exactly on its expected total
+- `tests/Ipc/SharedMemorySegmentTest.php` — round trips for scalars, arrays
+  and objects, replacing a value, reading an index that was never written, a
+  value too large for the segment, `detach()` keeping the contents against
+  `destroy()` taking them, and a forked child reading what the parent wrote
+
+### Notes
+
+- Two findings worth more than the checkboxes. Past four concurrent writers
+  the unsynchronized counter does not merely lose updates — the variable
+  disappears, because PHP rewrites an entry in the segment's variable
+  directory by removing and re-inserting it. And PHP passes `SEM_UNDO` on
+  every acquire, so the kernel releases a semaphore whose holder was killed,
+  which a lock flag written into the segment by hand can never match.
+- Cleanup is by key, never by object: a detached wrapper no longer holds the
+  handle it would need to remove anything. The test suite leaked exactly one
+  segment before this was fixed, which is the bug in miniature.
 
 ---
 

@@ -85,3 +85,24 @@ was made. New decisions get appended with a date.
   though PHP defines it and Linux honours it. Without the flag, writing to a
   departed peer raises SIGPIPE and kills the process before the error can be
   reported.
+
+## 2026-09-13 — Phase 6: SysV resources are cleaned up by key, not by object
+
+- `SharedMemorySegment::detach()` gives up the handle, and a wrapper without a
+  handle cannot remove the segment behind it. Tests and experiments therefore
+  keep the *key* and call `attach($key)->destroy()` on the way out. The test
+  suite leaked one 64 KiB segment per run before this, which is the same
+  mistake that fills `ipcs -m` on a long-lived machine.
+- `Semaphore::synchronized()` is the intended entry point; `acquire()` and
+  `release()` stay public because the counter experiment needs to time the
+  wait separately from the critical section.
+- The `$autoRelease` argument is kept and exposed as a readonly property, but
+  the documentation says what it actually does: PHP passes `SEM_UNDO` on every
+  acquire regardless, so process death is always covered, and `$autoRelease`
+  only governs release at PHP's request shutdown. An earlier draft of the
+  experiment claimed the opposite and was corrected against a direct
+  measurement.
+- The race experiment tolerates `SharedMemoryException` inside the
+  unsynchronized loop rather than crashing. Past four writers the counter
+  variable really does disappear mid-run, and a crash there would have hidden
+  the most interesting result behind a stack trace.

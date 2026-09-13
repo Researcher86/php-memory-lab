@@ -28,6 +28,9 @@ $scripts = [
     'ipc:socket' => __DIR__ . '/../experiments/06-process-ipc/socket-latency.php',
     'ipc:serialization' => __DIR__ . '/../experiments/06-process-ipc/serialization-compare.php',
     'ipc:backpressure' => __DIR__ . '/../experiments/06-process-ipc/backpressure.php',
+    'shm:lifecycle' => __DIR__ . '/../experiments/07-shared-memory/segment-lifecycle.php',
+    'shm:counter' => __DIR__ . '/../experiments/07-shared-memory/protected-counter.php',
+    'shm:race' => __DIR__ . '/../experiments/07-shared-memory/race-condition.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
@@ -51,7 +54,10 @@ $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "  cow:multiple-children   4 children, disjoint regions (Phase 4)\n"
     . "  ipc:socket              socket round-trip, 0 B to 10 MiB (Phase 5)\n"
     . "  ipc:serialization       json / serialize / csv / binary / raw (Phase 5)\n"
-    . "  ipc:backpressure        a producer faster than its consumer (Phase 5)\n";
+    . "  ipc:backpressure        a producer faster than its consumer (Phase 5)\n"
+    . "  shm:lifecycle           serialization, size limits, stale segments (Phase 6)\n"
+    . "  shm:counter             a semaphore-protected counter (Phase 6)\n"
+    . "  shm:race                lost updates at 1/2/4/8/16 writers (Phase 6)\n";
 
 $command = $argv[1] ?? null;
 

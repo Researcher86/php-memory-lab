@@ -95,7 +95,7 @@ Every file below is standalone enough to open cold.
 | arrays, strings, objects and GC actually cost memory | `experiments/02-arrays-and-strings/` · `experiments/03-garbage-collection/` (Phase 2) |
 | `fork()` shares and later splits pages (CoW) | `experiments/04-fork/` · `experiments/05-copy-on-write/` (Phases 3–4) |
 | messages stay framed over a byte stream | [`src/Ipc/SocketChannel.php`](src/Ipc/SocketChannel.php) · [`src/Ipc/MessageFramer.php`](src/Ipc/MessageFramer.php) |
-| SysV shared memory differs from raw bytes, and why it races | `src/Ipc/SharedMemorySegment.php` · `src/Ipc/Semaphore.php` (Phase 6) |
+| SysV shared memory differs from raw bytes, and why it races | [`src/Ipc/SharedMemorySegment.php`](src/Ipc/SharedMemorySegment.php) · [`src/Ipc/Semaphore.php`](src/Ipc/Semaphore.php) |
 | a fixed-size shared ring buffer synchronizes one producer/consumer | `src/Ipc/RingBuffer.php` (Phase 7) |
 | files map into the address space | `src/Native/MappedFile.php` (Phase 8) |
 | native memory lives outside the engine, and what that unlocks | `src/Native/FfiBuffer.php` (Phase 9) |
@@ -115,7 +115,7 @@ built and test-ready today.
 | **docs/php-memory-vs-rss.md** (Phase 1) | why the two measurements differ, when freed memory stays resident, PSS |
 | **docs/fork-and-cow.md** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
 | **docs/ipc-comparison.md** (Phase 12) | Unix socket vs SysV queue vs shared memory vs semaphore vs `mmap` vs FFI |
-| **docs/shared-memory.md** (Phase 6) | races, atomicity, cleanup, crash consistency, segment lifecycle |
+| **[docs/shared-memory.md](docs/shared-memory.md)** (Phase 6) | races, atomicity, cleanup, crash consistency, segment lifecycle |
 | **docs/mmap.md** (Phase 8) · **docs/ffi-memory.md** (Phase 9) | mappings and native ownership, with their hazards |
 | the rest of this file | the concepts, in depth |
 
@@ -330,10 +330,10 @@ and a child that dies mid-frame.
 
 ## Phase 6 — SysV Shared Memory and Semaphores
 
-* [ ] `SharedMemorySegment` (serialized values ≠ raw bytes)
-* [ ] semaphore-protected counter
-* [ ] race-condition experiment (lost updates at 1…16 children)
-* [ ] `docs/shared-memory.md`
+* [x] `SharedMemorySegment` (serialized values ≠ raw bytes, lifecycle, `RssShmem`)
+* [x] `Semaphore` with `synchronized()`, and a protected counter that is always exact
+* [x] race-condition experiment (lost updates, then a destroyed counter, at 1…16 children)
+* [x] `docs/shared-memory.md`
 
 ## Phase 7 — Shared-Memory Ring Buffer
 
