@@ -19,7 +19,7 @@ use LengthException;
  * here on purpose, because only something holding the stream knows whether
  * the rest of the payload has arrived yet - that is SocketChannel's buffer.
  */
-final class MessageFramer
+final readonly class MessageFramer
 {
     public const HEADER_LENGTH = 4;
 

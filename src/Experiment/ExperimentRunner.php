@@ -15,8 +15,9 @@ use InvalidArgumentException;
  */
 final readonly class ExperimentRunner
 {
-    public function __construct(private Registry $registry)
-    {
+    public function __construct(
+        private Registry $registry,
+    ) {
     }
 
     public function run(string $name, Options $options, Output $output): ExperimentResult

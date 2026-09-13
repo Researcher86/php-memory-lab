@@ -9,7 +9,7 @@ namespace App\Memory;
  * this so the numbers stay comparable between runs instead of each script
  * inventing its own formatting.
  */
-final class ByteFormatter
+final readonly class ByteFormatter
 {
     public static function format(int $bytes, int $precision = 2): string
     {

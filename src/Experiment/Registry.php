@@ -26,8 +26,9 @@ final class Registry
     /** @var array<string, Experiment>|null */
     private ?array $experiments = null;
 
-    public function __construct(private readonly string $directory)
-    {
+    public function __construct(
+        private readonly string $directory,
+    ) {
     }
 
     /**

@@ -12,12 +12,10 @@ namespace App\Benchmark;
  */
 final readonly class BenchmarkReport
 {
-    /**
-     * @param list<BenchmarkResult> $results
-     */
     public function __construct(
         public string $suite,
         public Environment $environment,
+        /** @var list<BenchmarkResult> */
         public array $results,
     ) {
     }

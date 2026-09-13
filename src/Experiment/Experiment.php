@@ -20,14 +20,12 @@ use Closure;
  */
 final readonly class Experiment
 {
-    /**
-     * @param list<string>                  $supports
-     * @param Closure(Options, Output): void $run
-     */
     public function __construct(
         public string $name,
         public string $description,
+        /** @var list<string> */
         public array $supports,
+        /** @var Closure(Options, Output): void */
         public Closure $run,
     ) {
     }

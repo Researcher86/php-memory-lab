@@ -45,8 +45,9 @@ final class SocketChannel
     /** Bytes pulled off the wire that do not yet add up to a frame. */
     private string $buffer = '';
 
-    public function __construct(private readonly Socket $socket)
-    {
+    public function __construct(
+        private readonly Socket $socket,
+    ) {
     }
 
     /**

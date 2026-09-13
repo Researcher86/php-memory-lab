@@ -8,7 +8,7 @@ use App\Benchmark\BenchmarkReport;
 use App\Memory\ByteFormatter;
 
 /** For reading. Fixed columns, so two runs can be diffed by eye. */
-final class TextFormatter implements Formatter
+final readonly class TextFormatter implements Formatter
 {
     public function format(BenchmarkReport $report): string
     {

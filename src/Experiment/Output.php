@@ -26,10 +26,8 @@ final class Output
     /** @var array<string, int|float|string|bool|null> */
     private array $measurements = [];
 
-    /**
-     * @param resource $stream
-     */
     public function __construct(
+        /** @var resource */
         private readonly mixed $stream = STDOUT,
         private readonly bool $quiet = false,
     ) {

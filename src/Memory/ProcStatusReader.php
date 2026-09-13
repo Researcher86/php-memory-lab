@@ -13,7 +13,7 @@ use RuntimeException;
  * one unit everywhere is easier to reason about in diff reports than mixing
  * pages and bytes.
  */
-final class ProcStatusReader
+final readonly class ProcStatusReader
 {
     /**
      * @param int $pid Process to inspect; 0 means the current process.

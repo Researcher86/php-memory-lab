@@ -21,7 +21,7 @@ return new Experiment(
          * Forks a child that writes every $stride-th element of the inherited array
          * and reports how many pages became private.
          */
-        $runChild = static function (int $stride) use ($count): void {
+        $runChild = static function (int $stride) use ($count, $out): void {
             $smaps = new SmapsRollupReader();
 
             $data = range(0, $count - 1);
@@ -65,7 +65,7 @@ return new Experiment(
         $out->write("Each row is a fresh fork: the parent builds a 1M-int array, the child writes N elements.\n");
         $runChild($count);          // 1 write
         $runChild((int) ($count / 1000)); // ~1_000 writes
-        $runChild((int) ($count / 100));  // 10_000 writes
+        $runChild((int) ($count / 10_000)); // 10_000 writes
         $runChild(1);               // 1_000_000 writes (every element)
     },
 );

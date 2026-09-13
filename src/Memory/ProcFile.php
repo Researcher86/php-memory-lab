@@ -16,7 +16,7 @@ use RuntimeException;
  * null fields rather than an error, because a PHP-only measurement is still
  * a measurement.
  */
-final class ProcFile
+final readonly class ProcFile
 {
     private function __construct()
     {

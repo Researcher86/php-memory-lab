@@ -9,7 +9,7 @@ namespace App\Memory;
  * memory mapping. Fields that the current kernel does not report stay at
  * their DTO default (0) rather than blowing up the parse.
  */
-final class SmapsRollupReader
+final readonly class SmapsRollupReader
 {
     public function read(int $pid = 0): SmapsRollup
     {

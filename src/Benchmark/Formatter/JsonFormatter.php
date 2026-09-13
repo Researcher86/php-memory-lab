@@ -7,7 +7,7 @@ namespace App\Benchmark\Formatter;
 use App\Benchmark\BenchmarkReport;
 
 /** For keeping. Whole report in one object, environment included. */
-final class JsonFormatter implements Formatter
+final readonly class JsonFormatter implements Formatter
 {
     public function format(BenchmarkReport $report): string
     {

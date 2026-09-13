@@ -136,7 +136,7 @@ return new Experiment(
         $cleanFlushMs = (hrtime(true) - $start) / 1e6;
 
         $out->write(sprintf(
-            "nmsync() with dirty pages: %.3f ms; immediately again, with nothing left dirty: %.3f ms\n",
+            "\nmsync() with dirty pages: %.3f ms; immediately again, with nothing left dirty: %.3f ms\n",
             $flushMs,
             $cleanFlushMs,
         ));

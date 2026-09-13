@@ -21,11 +21,9 @@ use InvalidArgumentException;
  */
 final readonly class Arguments
 {
-    /**
-     * @param array<string, string> $options
-     */
     private function __construct(
         public ?string $command,
+        /** @var array<string, string> */
         private array $options,
     ) {
     }

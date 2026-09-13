@@ -12,7 +12,7 @@ use RuntimeException;
  * header here - CSV has no room for one - so the fields that most often
  * explain a difference are repeated on every row instead of being dropped.
  */
-final class CsvFormatter implements Formatter
+final readonly class CsvFormatter implements Formatter
 {
     private const COLUMNS = [
         'suite',

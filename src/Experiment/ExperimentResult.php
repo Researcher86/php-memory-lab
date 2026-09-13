@@ -10,14 +10,12 @@ namespace App\Experiment;
  */
 final readonly class ExperimentResult
 {
-    /**
-     * @param array<string, int>                       $options
-     * @param array<string, int|float|string|bool|null> $measurements
-     */
     public function __construct(
         public string $name,
         public string $description,
+        /** @var array<string, int> */
         public array $options,
+        /** @var array<string, int|float|string|bool|null> */
         public array $measurements,
         public float $elapsedSeconds,
     ) {

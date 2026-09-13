@@ -30,11 +30,10 @@ final readonly class Options
         'sleep' => 'microseconds to pause between steps',
     ];
 
-    /**
-     * @param array<string, int> $values
-     */
-    private function __construct(private array $values)
-    {
+    private function __construct(
+        /** @var array<string, int> */
+        private array $values,
+    ) {
     }
 
     /**

@@ -143,7 +143,7 @@ return new Experiment(
         $readDelta = $reporter->diff($readBefore, $reporter->snapshot());
 
         $out->write(sprintf(
-            "nfile_get_contents() of the same %s (memory_limit raised to 512M to allow it):\n  PHP usage %s   RSS %s   %.1f ms\n",
+            "\nfile_get_contents() of the same %s (memory_limit raised to 512M to allow it):\n  PHP usage %s   RSS %s   %.1f ms\n",
             ByteFormatter::format($size),
             ByteFormatter::formatSigned($readDelta->phpUsage),
             $readDelta->rss === null ? 'n/a' : ByteFormatter::formatSigned($readDelta->rss),

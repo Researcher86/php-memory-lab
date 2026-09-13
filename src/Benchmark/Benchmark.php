@@ -21,6 +21,7 @@ final readonly class Benchmark
     public function __construct(
         public string $name,
         public int $iterations,
+        /** @var Closure(): mixed */
         public Closure $run,
     ) {
     }

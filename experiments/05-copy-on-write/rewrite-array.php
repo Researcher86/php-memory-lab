@@ -23,7 +23,7 @@ return new Experiment(
          * the child mutates it, so the fork debt is the same in both rows and only
          * the mutation strategy differs.
          */
-        $runChild = static function (string $label, callable $mutate) use ($count): void {
+        $runChild = static function (string $label, callable $mutate) use ($count, $out): void {
             $reporter = new MemoryReporter();
             $smaps = new SmapsRollupReader();
 
