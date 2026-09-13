@@ -113,7 +113,7 @@ process's footprint in isolation, `VmRSS` is the number you want.
 ## Reproduce
 
 ```bash
-make run-experiment ARGS="memory:empty"
+make experiment ARGS="memory:empty"
 ```
 
 The printed `Context:` line is deliberate: every value depends on the PHP

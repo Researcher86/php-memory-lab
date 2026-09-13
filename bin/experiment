@@ -6,14 +6,28 @@ declare(strict_types=1);
 require \dirname(__DIR__) . '/vendor/autoload.php';
 
 // The full experiment CLI lands in phase 11; until then each phase adds its
-// own commands here so its experiments stay reachable through `make run-experiment`.
+// own commands here so its experiments stay reachable through `make experiment`.
 $scripts = [
     'memory:empty' => __DIR__ . '/../experiments/01-memory-basics/empty.php',
+    'memory:strings' => __DIR__ . '/../experiments/02-arrays-and-strings/strings.php',
+    'memory:packed-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/packed-arrays.php',
+    'memory:associative-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/associative-arrays.php',
+    'memory:sparse-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/sparse-arrays.php',
+    'memory:nested-arrays' => __DIR__ . '/../experiments/02-arrays-and-strings/nested-arrays.php',
+    'memory:objects' => __DIR__ . '/../experiments/02-arrays-and-strings/objects.php',
+    'memory:gc' => __DIR__ . '/../experiments/03-garbage-collection/gc.php',
 ];
 
 $usage = "Usage: php bin/experiment <experiment>\n\n"
     . "Available experiments:\n"
-    . "  memory:empty   baseline process memory (Phase 1)\n";
+    . "  memory:empty            baseline process memory (Phase 1)\n"
+    . "  memory:strings          string cost, COW (Phase 2)\n"
+    . "  memory:packed-arrays    vs append vs array_fill (Phase 2)\n"
+    . "  memory:associative-arrays  string vs numeric keys (Phase 2)\n"
+    . "  memory:sparse-arrays    gaps -> hash table (Phase 2)\n"
+    . "  memory:nested-arrays    rows, depth, references (Phase 2)\n"
+    . "  memory:objects          object overhead (Phase 2)\n"
+    . "  memory:gc               refcounts, cycles (Phase 2)\n";
 
 $command = $argv[1] ?? null;
 

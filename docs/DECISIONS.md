@@ -49,8 +49,8 @@ was made. New decisions get appended with a date.
   sibling project's compose conventions.
 - `Makefile` was rewritten to the worker-pool style: `up`/`down`/`build`,
   `shell`, `htop`, `install`, `test`, `analyse`, `format`,
-  `format-check`, plus `run-experiment`/`run-benchmark` with `-debug`
-  variants (Xdebug via `XDEBUG_TRIGGER=1`).
+  `format-check`, plus `experiment`/`benchmark` with `-debug` variants
+  (Xdebug via `XDEBUG_TRIGGER=1`).
 - CI (`github/workflows/ci.yml`) runs on GitHub Actions with the required
   extensions via `shivammathur/setup-php`, then `composer test`,
   `composer analyse`, `composer format:check`.

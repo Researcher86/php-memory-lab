@@ -58,7 +58,7 @@ that gap measurable.
 First experiment, once Phase 1 lands:
 
 ```bash
-make run-experiment ARGS="memory:empty"
+make experiment ARGS="memory:empty"
 ```
 
 See [Docs](#docs) for what each phase produces and how it is verified.
@@ -111,7 +111,7 @@ built and test-ready today.
 |---|---|
 | **[docs/PHASES.md](docs/PHASES.md)** | how it was built - the full plan, phase by phase, each with Goal / Tasks / Definition of Done / Tests |
 | **[docs/DECISIONS.md](docs/DECISIONS.md)** | what was decided and why: PHP 8.5, `App\` namespace, no `extension_loaded()` checks, plan folded |
-| **docs/memory-model.md** (Phase 2) | zvals, refcounting, hash tables, packed arrays, arenas, allocator, GC |
+| **[docs/memory-model.md](docs/memory-model.md)** (Phase 2) | zvals, refcounting, hash tables, packed arrays, arenas, allocator, GC |
 | **docs/php-memory-vs-rss.md** (Phase 1) | why the two measurements differ, when freed memory stays resident, PSS |
 | **docs/fork-and-cow.md** (Phase 4) | virtual address spaces, page tables, shared pages, private dirty pages |
 | **docs/ipc-comparison.md** (Phase 12) | Unix socket vs SysV queue vs shared memory vs semaphore vs `mmap` vs FFI |
@@ -137,7 +137,7 @@ experiment that forks a parent plus N children does not make all of them
 reach for a debugger that is not there:
 
 ```bash
-make run-experiment-debug ARGS="cow:many-writes --children=4"
+make experiment-debug ARGS="cow:many-writes --children=4"
 ```
 
 Point the IDE at port 9003 first; without a listener the connection attempt
@@ -294,23 +294,23 @@ and a child that dies mid-frame.
 * [x] Docker Compose, Makefile (test/analyse/format/shell/htop), PHPUnit, PHPStan level 8, PHP-CS-Fixer
 * [x] Initial commit: `Initialize php-memory-lab project`
 
-## Phase 1 — Memory Measurement Basics *(in progress)*
+## Phase 1 — Memory Measurement Basics
 
 * [x] `MemorySnapshot`, `ByteFormatter`
 * [x] `/proc/self/status` reader (`ProcStatusReader`)
 * [x] `/proc/self/smaps_rollup` reader (`SmapsRollupReader`, `SmapsRollup`)
-* [ ] `MemoryReporter` (snapshot/diff)
-* [ ] `experiments/01-memory-basics/empty.php`
-* [ ] unit tests for the reporting layer (`tests/`)
-* [ ] `docs/php-memory-vs-rss.md`
+* [x] `MemoryReporter` (snapshot/diff)
+* [x] `experiments/01-memory-basics/empty.php`
+* [x] unit tests for the reporting layer (`tests/`)
+* [x] `docs/php-memory-vs-rss.md`
 
 ## Phase 2 — PHP Arrays, Strings and Garbage Collection
 
-* [ ] string experiments (empty … 10M, concatenation, copies, CoW)
-* [ ] packed / associative / sparse / nested array experiments
-* [ ] object experiments
-* [ ] GC: reference counts, cycles, `unset()`, `gc_collect_cycles()`
-* [ ] `docs/memory-model.md`
+* [x] string experiments (empty … 10M, concatenation, copies, CoW)
+* [x] packed / associative / sparse / nested array experiments
+* [x] object experiments
+* [x] GC: reference counts, cycles, `unset()`, `gc_collect_cycles()`
+* [x] `docs/memory-model.md`
 
 ## Phase 3 — Processes and `fork()`
 

@@ -98,7 +98,7 @@ identically from anywhere.
 - [x] 0.5 Makefile wrappers
   - `up`, `down`, `build`, `shell`, `htop`
   - `install`, `test`, `analyse`, `format`, `format-check`
-  - `run-experiment`, `run-benchmark` (+ debug variants)
+  - `experiment`, `experiment-debug`, `benchmark`, `benchmark-debug`
 - [x] 0.6 PHPUnit configuration (`phpunit.xml`)
 - [x] 0.7 PHPStan configuration
   - level 8, paths `src`, `bin`, `tests`
@@ -169,7 +169,7 @@ later experiment speaks the same language.
 ### Definition of Done
 
 - The empty-process experiment prints before/after/delta in the plan's
-  format, reproducible via `make run-experiment`.
+  format, reproducible via `make experiment`.
 - The reporting layer is covered by unit tests.
 - `docs/php-memory-vs-rss.md` explains why measurements differ.
 
@@ -183,7 +183,7 @@ later experiment speaks the same language.
 
 ---
 
-## Phase 2 — PHP Arrays, Strings and Garbage Collection
+## Phase 2 — PHP Arrays, Strings and Garbage Collection ✅
 
 ### Goal
 
@@ -192,31 +192,31 @@ memory.
 
 ### Tasks
 
-- [ ] 2.1 String experiments
+- [x] 2.1 String experiments
   - empty / short / 1K / 1M / 10M strings
   - `str_repeat`, concatenation, copying, `substr`
   - modification and PHP-level Copy-on-Write
   - `experiments/02-arrays-and-strings/strings.php`
-- [ ] 2.2 Packed array experiments
+- [x] 2.2 Packed array experiments
   - `range(1, 1_000_000)` vs appending in a loop
   - `experiments/02-arrays-and-strings/packed-arrays.php`
-- [ ] 2.3 Associative array experiments
+- [x] 2.3 Associative array experiments
   - string keys, sequential/sparse numeric keys
   - `experiments/02-arrays-and-strings/associative-arrays.php`
-- [ ] 2.4 Sparse array experiments
+- [x] 2.4 Sparse array experiments
   - gaps in numeric keys
   - `experiments/02-arrays-and-strings/sparse-arrays.php`
-- [ ] 2.5 Nested arrays
+- [x] 2.5 Nested arrays
   - `experiments/02-arrays-and-strings/nested-arrays.php`
-- [ ] 2.6 Object experiments
+- [x] 2.6 Object experiments
   - empty, scalar, string, nested properties, DTOs, arrays of objects
   - object overhead versus associative arrays
   - `experiments/02-arrays-and-strings/objects.php`
-- [ ] 2.7 Garbage collection
+- [x] 2.7 Garbage collection
   - reference counts, cycles, `unset()`, `gc_collect_cycles()`
   - long-running worker memory growth
   - `experiments/03-garbage-collection/gc.php`
-- [ ] 2.8 `docs/memory-model.md`
+- [x] 2.8 `docs/memory-model.md`
   - zvals, refcounting, PHP-level Copy-on-Write, hash tables, packed
     arrays, arenas, allocator behavior
 
