@@ -106,3 +106,26 @@ was made. New decisions get appended with a date.
   unsynchronized loop rather than crashing. Past four writers the counter
   variable really does disappear mid-run, and a crash there would have hidden
   the most interesting result behind a stack trace.
+
+## 2026-09-13 — Phase 7: `ext-shmop` for raw bytes, and the lock is the cost
+
+- `ext-shmop` was added to the Dockerfile, `composer.json` and CI. The ring
+  buffer needs a byte layout it controls — magic, version, positions, fixed
+  slots — and `shm_put_var()` serializes each value into a variable directory
+  of its own, which is exactly the layer being replaced. The sysvshm wrapper
+  of Phase 6 stays as it is; the two coexist.
+- `RingBuffer` reads its whole header in one `shmop_read()` and writes the
+  mutable tail back in one `shmop_write()`. The first draft read each field
+  separately, which cost ~28 calls per push/pop pair and made the buffer twice
+  as slow as it needed to be; committing sixteen bytes at once also means
+  positions, count and the busy flag can never be observed half-updated.
+- The semaphore is kept despite the measurement showing it to be the dominant
+  cost, because the plan's constraint for this phase is a synchronized buffer
+  and a lock-free one would be correct only for exactly one producer and one
+  consumer, on an atomicity guarantee PHP does not make. The unsynchronized
+  variant is measured *inside* `ring:throughput` as a control rather than
+  offered as an API.
+- A crash mid-update is detected and never repaired. The header records the
+  pid inside a transaction; a non-zero value on entry means a process died
+  between two writes, and the only honest answers are to refuse the buffer or
+  to format a new one and accept that its contents are gone.

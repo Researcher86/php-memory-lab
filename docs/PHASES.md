@@ -442,7 +442,7 @@ needs synchronization.
 
 ---
 
-## Phase 7 — Shared-Memory Ring Buffer
+## Phase 7 — Shared-Memory Ring Buffer ✅
 
 ### Goal
 
@@ -451,40 +451,71 @@ queue.
 
 ### Tasks
 
-- [ ] 7.1 Initial constraints
-  - one producer, one consumer, fixed-size messages, fixed capacity,
-    semaphore synchronization, blocking or polling
-  - intentionally out of scope: multiple producers/consumers, lock-free
-    algorithms, dynamic resizing, crash recovery, zero-copy variable-size
+- [x] 7.1 Initial constraints
+  - one producer, one consumer, fixed-size slots, fixed capacity, semaphore
+    synchronization, polling rather than blocking
+  - intentionally out of scope, and stated in the class docblock: multiple
+    producers/consumers, lock-free algorithms, dynamic resizing, crash
+    *recovery* (crashes are detected, never repaired), zero-copy variable-size
     messages
-- [ ] 7.2 Ring buffer layout
-  - header: `magic`, `version`, `capacity`, `slot size`, `read position`,
-    `write position`, `item count`, `state`
-  - data area: fixed-size slots `[message length][message payload]`
-- [ ] 7.3 Required operations
-  - `RingBufferInterface`: `push`, `pop`, `isEmpty`, `isFull`, `size`,
-    `capacity`
-  - `src/Ipc/RingBuffer.php`
-- [ ] 7.4 Experiments
-  - push/pop latency, throughput, full/empty behavior, message sizes,
-    producer/consumer speed mismatch, semaphore contention, polling
-    interval, blocking behavior
-  - `experiments/08-ring-buffer/`
-- [ ] 7.5 Failure scenarios
-  - producer/consumer exits, crash while holding a lock, full/empty
-    buffer, invalid header, invalid message length, corrupted slot
-  - document handled vs intentionally unsupported failures
+- [x] 7.2 Ring buffer layout
+  - 32-byte header: `magic`, `version`, `capacity`, `slotSize`,
+    `readPosition`, `writePosition`, `count`, `busyPid` — all 32-bit
+    big-endian, so the segment means the same thing to every process
+  - data area: fixed slots of `[4-byte length][payload]`
+- [x] 7.3 Required operations
+  - `push`, `pop`, `isEmpty`, `isFull`, `size`, `capacity`, `slotSize`,
+    `busyPid`, `destroy`
+  - `src/Ipc/RingBuffer.php`, on `ext-shmop` — raw bytes, because
+    `shm_put_var()` would serialize each slot and keep its own variable
+    directory, which is the layer this class replaces
+- [x] 7.4 Experiments
+  - `experiments/08-ring-buffer/throughput.php` — the same exchange through
+    the locked ring, a Unix socket, and the identical layout with the
+    semaphore removed
+  - `experiments/08-ring-buffer/pacing.php` — full and empty behaviour,
+    backpressure against a slow consumer, and the polling interval swept
+    against latency and CPU
+- [x] 7.5 Failure scenarios
+  - `experiments/08-ring-buffer/failure-modes.php` — a key with nothing
+    behind it, a segment holding other data, a segment too small for a
+    header, a version this code does not speak, a message larger than a slot,
+    and a producer SIGKILLed mid-update
+  - handled against unsupported is explicit: the first five are refused at
+    the boundary, the sixth is detected and refused, and none of them is
+    repaired
 
 ### Definition of Done
 
-- A single producer exchanges measured messages with a single consumer.
-- Throughput benchmark recorded.
+- A single producer exchanges measured messages with a single consumer, in
+  separate processes.
+- Throughput recorded, against a socket and against the unsynchronized
+  version of the same layout.
 
 ### Tests
 
-- `tests/Ipc/RingBufferTest.php`
-  - state transitions: empty → full, push/pop order, capacity limits
-- Integration: producer/consumer pair across processes (planned).
+- `tests/Ipc/RingBufferTest.php` — shape of a new buffer, FIFO order, empty
+  messages, filling and refusing, popping from empty, the write position
+  wrapping without disturbing order, a message larger than a slot, `create()`
+  replacing an older buffer, attaching to nothing / to a foreign segment / to
+  a newer version, a header left mid-update, and a producer and consumer in
+  separate processes exchanging 200 messages
+
+### Notes
+
+- The measured result is the opposite of the intuition the phase started
+  with. Shared memory is not the slow part: the unsynchronized ring is the
+  fastest transport measured (~760,000 messages/s against the socket's
+  ~500,000), and the same ring with one acquire and one release per message
+  manages ~21,000. An acquire that finds the lock held is a sleep and a wake,
+  tens of microseconds against the ~8 µs the operation itself costs.
+- Two leaks were found by checking `/proc/sysvipc` after every run rather
+  than by any test failing. `attach()` used to create the semaphore before
+  validating the header, so every attach to a foreign segment left one
+  behind; and `create()` now removes the old semaphore along with the old
+  segment, so a new buffer never inherits the lock state of whatever ran
+  there before.
+- `ext-shmop` was added to the image, `composer.json` and CI for this phase.
 
 ---
 

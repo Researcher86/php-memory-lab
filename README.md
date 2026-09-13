@@ -96,7 +96,7 @@ Every file below is standalone enough to open cold.
 | `fork()` shares and later splits pages (CoW) | `experiments/04-fork/` · `experiments/05-copy-on-write/` (Phases 3–4) |
 | messages stay framed over a byte stream | [`src/Ipc/SocketChannel.php`](src/Ipc/SocketChannel.php) · [`src/Ipc/MessageFramer.php`](src/Ipc/MessageFramer.php) |
 | SysV shared memory differs from raw bytes, and why it races | [`src/Ipc/SharedMemorySegment.php`](src/Ipc/SharedMemorySegment.php) · [`src/Ipc/Semaphore.php`](src/Ipc/Semaphore.php) |
-| a fixed-size shared ring buffer synchronizes one producer/consumer | `src/Ipc/RingBuffer.php` (Phase 7) |
+| a fixed-size shared ring buffer synchronizes one producer/consumer | [`src/Ipc/RingBuffer.php`](src/Ipc/RingBuffer.php) |
 | files map into the address space | `src/Native/MappedFile.php` (Phase 8) |
 | native memory lives outside the engine, and what that unlocks | `src/Native/FfiBuffer.php` (Phase 9) |
 
@@ -288,7 +288,7 @@ and a child that dies mid-frame.
 ## Phase 0 — Project Setup
 
 * [x] Composer project (`researcher86/php-memory-lab`, PHP 8.5, PSR-4 `App\` → `src/`)
-* [x] Dockerfile: `php:8.5-cli` + `pcntl`, `posix`, `sockets`, `sysvmsg`, `sysvsem`, `sysvshm`, `ffi`
+* [x] Dockerfile: `php:8.5-cli` + `pcntl`, `posix`, `shmop`, `sockets`, `sysvmsg`, `sysvsem`, `sysvshm`, `ffi`
 * [x] Docker Compose, Makefile (test/analyse/format/shell/htop), PHPUnit, PHPStan level 8, PHP-CS-Fixer
 * [x] Initial commit: `Initialize php-memory-lab project`
 
@@ -337,9 +337,9 @@ and a child that dies mid-frame.
 
 ## Phase 7 — Shared-Memory Ring Buffer
 
-* [ ] header + fixed-size slots, semaphore sync, one producer / one consumer
-* [ ] full/empty behavior, throughput, producer/consumer speed mismatch
-* [ ] failure scenarios documented (handled vs unsupported)
+* [x] header + fixed-size slots, semaphore sync, one producer / one consumer
+* [x] full/empty behavior, throughput against a socket, speed mismatch, polling dial
+* [x] failure scenarios measured (bad magic/version, oversized message, a writer killed mid-update)
 
 ## Phase 8 — mmap
 

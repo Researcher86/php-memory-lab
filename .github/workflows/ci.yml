@@ -17,7 +17,7 @@ jobs:
           # runtime; on the GitHub runner /proc is real, so the /proc readers
           # are exercised against the live kernel rather than fixtures only.
           # ffi pulls in libffi, which the composer platform config needs.
-          extensions: ffi, pcntl, posix, sockets, sysvmsg, sysvsem, sysvshm
+          extensions: ffi, pcntl, posix, shmop, sockets, sysvmsg, sysvsem, sysvshm
           coverage: none
 
       - run: composer install --no-interaction --no-progress
