@@ -29,7 +29,7 @@ Explanations
  ipc-comparison, shared-memory, mmap, ffi-memory)
      │
      ▼
-Reusable primitives
+Mechanisms you can rebuild
 (MemoryReport, SocketChannel, SharedMemorySegment,
  Semaphore, RingBuffer, MappedFile, FfiBuffer)
      │
@@ -1036,7 +1036,7 @@ is not a collection of scripts:
 
 ```
 Experiments → Measurements → Benchmarks → Explanations
-    → Reusable primitives → Real backend applications
+    → Mechanisms you can rebuild → Real backend applications
 ```
 
 The project should answer not only *how do I implement this?*, but also

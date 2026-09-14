@@ -154,6 +154,18 @@ final class MappedFile
         return $this->address !== null;
     }
 
+    /**
+     * The safety net, not the plan - the same one `FfiBuffer` keeps, and for
+     * the same reason. PHP unmaps nothing on its own, so a mapping whose last
+     * reference is dropped between open() and unmap() holds its region and its
+     * descriptor for the life of the process, with nothing in the PHP counters
+     * to show for either. Explicit unmap() stays the intended route.
+     */
+    public function __destruct()
+    {
+        $this->unmap();
+    }
+
     /** Where the kernel put the mapping. Always page-aligned. */
     public function address(): int
     {
@@ -164,6 +176,10 @@ final class MappedFile
      * The boundary this class exists to hold. A read past the end of a
      * mapping is not an error C reports - it is either somebody else's memory
      * or a SIGBUS, and neither can be caught from PHP.
+     *
+     * Written as `$length > $this->size - $offset` rather than
+     * `$offset + $length > $this->size`, matching `FfiBuffer` - see the note
+     * there for why the comparison is kept in integer arithmetic.
      */
     private function assertWithinBounds(int $offset, int $length): void
     {
@@ -171,7 +187,7 @@ final class MappedFile
             throw new NativeMemoryException(sprintf('Negative offset (%d) or length (%d)', $offset, $length));
         }
 
-        if ($offset + $length > $this->size) {
+        if ($offset > $this->size || $length > $this->size - $offset) {
             throw new NativeMemoryException(sprintf(
                 'Access of %d bytes at offset %d runs past the %d-byte mapping of %s',
                 $length,

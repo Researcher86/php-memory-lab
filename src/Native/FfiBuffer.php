@@ -122,8 +122,12 @@ final class FfiBuffer
 
     /**
      * Written as three comparisons rather than `$offset + $length > $size`
-     * because that sum overflows for large offsets and wraps negative, which
-     * turns the check into a guarantee of exactly what it was meant to stop.
+     * because that sum leaves integer range for a large offset and comes back
+     * as a float - PHP promotes on overflow where C wraps - and a bounds check
+     * that silently changes type is one to distrust. The float answer happens
+     * to be the right one here, so this is not a bug being fixed; it is the
+     * comparison being kept in the arithmetic it was reasoned about in.
+     * `testAnOffsetPastIntegerRangeIsRefused` pins the behaviour either way.
      */
     private function assertWithinBounds(int $offset, int $length): void
     {

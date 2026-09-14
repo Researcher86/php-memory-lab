@@ -29,7 +29,7 @@ Benchmarks      min/max/mean/median, text / JSON / CSV
 Explanations    docs/memory-model.md ... docs/ffi-memory.md
    │
    ▼
-Reusable primitives → real backend applications
+Mechanisms you can rebuild → real backend applications
 ```
 
 ---
@@ -183,12 +183,18 @@ just times out and the run continues.
                              └────────────────────────┘
                                           │
                                           ▼
-          Reusable primitives  →  real backend applications
+     Mechanisms you can rebuild  →  real backend applications
 ```
 
 ---
 
 # How It Works
+
+![A process virtual-memory layout: program segments, heap, mapped libraries, stack, and the kernel-managed portion.](img/img.png)
+
+Everything below is somewhere in that picture. `memory_get_usage()` watches
+one region of it - the heap the engine allocates from - while `/proc` reports
+on all of them, which is why the two numbers never agree.
 
 The whole project rests on one distinction that most PHP code never has to
 make: **the PHP engine's view of memory is not the operating system's view**.
@@ -247,6 +253,8 @@ half. That is the whole Copy-on-Write story in one row.
 
 ## `fork()` and Copy-on-Write
 
+![A child initially shares its parent's pages; a write makes the modified page private.](img/img_1.png)
+
 `fork()` gives the child a copy of the parent's *page tables*, not its
 pages. Both processes point at the same physical pages until one writes -
 the kernel copies the faulted page and the writer keeps its private copy.
@@ -272,6 +280,25 @@ Reads never cost anything; writes are lazy and page-grained.
 
 The experiments measure the transition with RSS, PSS and private-dirty
 instead of assuming either process owns all the pages.
+
+![Before fork, after fork, and after the child changes one value: parent and child page tables initially refer to the same pages, then the child gets a copied page.](img/img_3.png)
+
+## A ring buffer is what is left when the kernel stops helping
+
+![Two processes map the same memory and exchange fixed-size messages through a producer-consumer ring buffer.](img/img_2.png)
+
+A shared-memory segment gives two processes the same bytes and nothing else -
+no message boundaries, no ordering, no notion of "full", no backpressure. The
+ring buffer of Phase 7 supplies each of those by hand, and how much of it
+there is, is the point of the exercise.
+
+![Producer and consumer positions advance around a circular buffer.](img/img_4.png)
+
+Read and write positions chase each other around a fixed number of slots;
+equal positions mean empty, and a writer that would pass the reader means
+full. That is where backpressure comes from when nobody is providing it for
+you - see [`src/Ipc/RingBuffer.php`](src/Ipc/RingBuffer.php) for the header
+layout and the crash-consistency flag.
 
 ## Messages over streams need framing
 
@@ -451,25 +478,55 @@ containers and never on production.
 
 # Related Projects
 
+### [PHP Concurrency](https://github.com/Researcher86/php-concurrency) — the same mechanisms, a different question
+
+The one worth reading next to this, because the overlap is deliberate and
+easy to mistake for duplication. Its `01_fork`, `02_process_lifecycle`,
+`03_ipc`, `05_producer_consumer` and `07_backpressure` cover the same
+mechanisms as Phases 3 to 7 here, and two of the names match exactly.
+
+The difference is the question:
+
+```text
+php-concurrency            how is work coordinated across processes?
+                           → answers with patterns
+
+php-memory-lab             what does that mechanism cost in pages and copies?
+                           → answers with RssShmem, Pss, Private_Dirty
+```
+
+Which is how [`docs/ipc-comparison.md`](docs/ipc-comparison.md) reaches a
+conclusion its sibling never measures: the Unix socket beats shared memory,
+because the lock shared memory needs costs more than the copy it saves. Read
+`php-concurrency` to learn the pattern; read this to learn what it costs.
+
 ### [PHP Worker Pool](https://github.com/Researcher86/php-worker-pool)
 
 A sibling playground: persistent forked PHP workers, IPC over socket pairs,
 a Unix domain socket front door, and a single-threaded event-driven Master.
-The two projects share tooling conventions - and `php-memory-lab`'s IPC and
-memory-reporting primitives are the foundation concepts a worker-based
-runtime is built from.
+Its shared-memory telemetry is Phase 6 of this project applied to a real
+runtime - reimplemented there rather than depended on, which is how this
+ecosystem works.
 
-### PHP Systems Laboratory
+### [PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)
 
-`php-memory-lab` is part of the larger `php-systems-lab` exploration:
+`php-memory-lab` is one of seven projects in the
+[`php-systems-lab`](https://github.com/Researcher86/php-systems-lab)
+collection:
 
 | Project | Main focus |
 |---|---|
-| `php-worker-pool` | managing reusable worker processes |
-| `php-memory-lab` | memory, virtual memory, processes, IPC, native memory |
-| `php-job-queue` | reliable asynchronous job processing |
-| `php-mini-cache` | event-driven in-memory server |
-| `php-mini-http-server` | HTTP server and event loop fundamentals |
+| [`php-concurrency`](https://github.com/Researcher86/php-concurrency) | processes, IPC, concurrency patterns, event loops, Fibers |
+| [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) | memory, virtual memory, Copy-on-Write, shared memory, `mmap`, FFI |
+| [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | managing reusable worker processes |
+| [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | reliable asynchronous job processing |
+| [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory server |
+| [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | HTTP server and event loop fundamentals |
+| [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | storage engine, pages, indexes, WAL, crash recovery |
+
+None of them depends on another as a package. They are teaching projects, not
+libraries: what travels between them is the mechanism and the measurement,
+read in one and reimplemented in the next.
 
 ---
 

@@ -89,7 +89,7 @@ final class FfiBufferTest extends TestCase
      * overflows for a large offset and wraps negative, which would turn the
      * guard into a guarantee of the access it exists to stop.
      */
-    public function testAnOffsetThatWouldOverflowTheBoundsCheckIsRefused(): void
+    public function testAnOffsetPastIntegerRangeIsRefused(): void
     {
         $buffer = FfiBuffer::allocate(64);
 

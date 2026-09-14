@@ -25,7 +25,6 @@ return new Experiment(
             $smaps = new SmapsRollupReader();
 
             $data = range(0, $count - 1);
-            $start = hrtime(true);
 
             $pid = pcntl_fork();
 
@@ -33,19 +32,24 @@ return new Experiment(
                 $before = $smaps->read();
                 $writes = 0;
 
+                // Started here, not before the fork. The clock used to cover
+                // fork() and a smaps_rollup read as well, which made the
+                // one-write row report several milliseconds of overhead as if
+                // it were the cost of the write.
+                $start = hrtime(true);
+
                 for ($k = 0; $k < $count; $k += $stride) {
                     $data[$k] += 1;
                     $writes++;
                 }
 
-                $after = $smaps->read();
-
                 $elapsedMs = (hrtime(true) - $start) / 1e6;
+                $after = $smaps->read();
                 $dirtyDelta = $after->privateDirty - $before->privateDirty;
                 $sharedDirtyDelta = $after->sharedDirty - $before->sharedDirty;
 
                 $out->write(wordwrap(sprintf(
-                    "[%d writes] %d elements in place. Time %.2f ms | Private_Dirty +%s (+%dB) | Shared_Dirty %s (%dB) | RSS +%s\n",
+                    "[%d writes] across %d inherited elements. Writes took %.2f ms | Private_Dirty +%s (+%dB) | Shared_Dirty %s (%dB) | RSS +%s\n",
                     $writes,
                     $count,
                     $elapsedMs,

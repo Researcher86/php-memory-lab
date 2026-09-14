@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\ScratchFile;
 use App\Memory\ByteFormatter;
 use App\Memory\SmapsRollupReader;
 use App\Native\MappedFile;
@@ -28,7 +29,7 @@ return new Experiment(
          * accounts exactly like the fork case: Shared_Clean until written, then
          * Private_Dirty.
          */
-        $path = sys_get_temp_dir() . '/mmap-modes-' . bin2hex(random_bytes(4)) . '.bin';
+        $path = ScratchFile::reserve('mmap-modes');
         $size = $options->size(64 * 1024 * 1024);
         $smaps = new SmapsRollupReader();
         $original = str_pad('untouched original', 24);

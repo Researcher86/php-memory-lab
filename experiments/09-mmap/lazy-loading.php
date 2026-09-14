@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\ScratchFile;
 use App\Memory\ByteFormatter;
 use App\Memory\MemoryReporter;
 use App\Native\Libc;
@@ -25,7 +26,7 @@ return new Experiment(
          * So a mapping costs address space, which is free, instead of memory, which
          * is not - and the difference between the two is measurable in one run.
          */
-        $path = sys_get_temp_dir() . '/mmap-lazy-' . bin2hex(random_bytes(4)) . '.bin';
+        $path = ScratchFile::reserve('mmap-lazy');
         $size = $options->size(256 * 1024 * 1024);
         $pageSize = Libc::pageSize();
 

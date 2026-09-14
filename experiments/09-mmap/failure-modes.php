@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\ScratchFile;
 use App\Native\MappedFile;
 use App\Native\NativeMemoryException;
 
@@ -26,7 +27,8 @@ return new Experiment(
          * with an exception. Everything else kills the process, and the only
          * defensible way to demonstrate it is inside a child that is expected to die.
          */
-        $path = sys_get_temp_dir() . '/mmap-failures-' . bin2hex(random_bytes(4)) . '.bin';
+        $path = ScratchFile::reserve('mmap-failures');
+        ScratchFile::removeOnExit($path . '.zero');
         $mapping = MappedFile::open($path, 8192);
 
         $out->write("\nRefused before the access happens:\n");

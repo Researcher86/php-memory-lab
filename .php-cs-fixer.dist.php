@@ -3,15 +3,18 @@
 declare(strict_types=1);
 
 /*
- * Matches the conventions of the sibling project php-worker-pool, which has
- * no formatter of its own: PSR-12, strict types in every file, ordered
- * imports, and native functions called by their plain names.
+ * Shared with the sibling projects in php-systems-lab, so that code moving
+ * between them does not change shape on the way: PSR-12, strict types in
+ * every file, ordered imports, and native functions called by their plain
+ * names. This config was written here first and php-worker-pool and
+ * php-mini-cache were given the same one on 2026-09-14; the remaining four
+ * projects already had it.
  *
  * Two rules are switched off deliberately. native_function_invocation would
  * prefix every internal call with a backslash, and single_line_empty_body
- * would collapse an empty constructor onto one line - neither is how the
- * sibling project is written, and matching it matters more here than either
- * micro-optimisation or brevity.
+ * would collapse an empty constructor onto one line - neither is how these
+ * projects are written by hand, and the formatter is here to keep the style
+ * that exists rather than to impose a different one.
  */
 $finder = PhpCsFixer\Finder::create()
     ->in(__DIR__ . '/bin')

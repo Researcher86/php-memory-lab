@@ -181,6 +181,42 @@ final class MappedFileTest extends TestCase
         self::assertSame('FROM THE PARENT', $mapping->read(64, 15), 'no flush needed: same physical pages');
     }
 
+    public function testAnOffsetPastIntegerRangeIsRefused(): void
+    {
+        $mapping = $this->map(4096);
+
+        $this->expectException(NativeMemoryException::class);
+
+        $mapping->read(PHP_INT_MAX, PHP_INT_MAX);
+    }
+
+    /**
+     * The destructor is the backstop for a mapping whose owner threw between
+     * open() and unmap(). Without it the region and the descriptor stay for
+     * the life of the process, and nothing in the PHP counters says so.
+     */
+    public function testDroppingTheLastReferenceUnmaps(): void
+    {
+        $path = $this->path();
+        $mapping = MappedFile::open($path, 4096);
+        $mapping->write(0, 'still mapped');
+
+        self::assertTrue($mapping->isMapped());
+
+        $mappedRegions = static fn (): int => substr_count(
+            (string) @file_get_contents('/proc/self/maps'),
+            basename($path),
+        );
+
+        if ($mappedRegions() === 0) {
+            self::markTestSkipped('/proc/self/maps is unavailable');
+        }
+
+        unset($mapping);
+
+        self::assertSame(0, $mappedRegions(), 'the region is gone once nothing references the mapping');
+    }
+
     private function map(int $size, bool $shared = true): MappedFile
     {
         $mapping = MappedFile::open($this->path(), $size, $shared);

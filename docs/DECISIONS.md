@@ -45,6 +45,10 @@ was made. New decisions get appended with a date.
 
 ## 2026-09-12 — Tooling mirrors `php-worker-pool`
 
+> Superseded on 2026-09-14: it no longer does, and the difference is this
+> project's. See "Tooling no longer mirrors the sibling — it sets the bar".
+
+
 - `docker-compose.yml` gained a named service container and matches the
   sibling project's compose conventions.
 - `Makefile` was rewritten to the worker-pool style: `up`/`down`/`build`,
@@ -156,10 +160,9 @@ was made. New decisions get appended with a date.
   requirement, which only became wrong once Phases 8 and 9 made it
   load-bearing. `composer.lock` was refreshed with it.
 - `FfiBuffer` validates with `$offset > $size || $length > $size - $offset`
-  rather than `$offset + $length > $size`. The sum overflows for a large
-  offset and wraps negative, which would make the guard permit exactly the
-  access it exists to stop; `testAnOffsetThatWouldOverflowTheBoundsCheckIsRefused`
-  passes `PHP_INT_MAX` to keep it that way.
+  rather than `$offset + $length > $size`. The reason recorded here was wrong
+  and is corrected in the 2026-09-14 entry below; the form stayed, the
+  justification changed, and `MappedFile` now matches it.
 - `FfiBuffer::free()` is idempotent and `__destruct()` calls it. The
   underlying `free()` is neither of those things, and a buffer whose last
   reference is dropped would otherwise leak with nothing in the PHP counters
@@ -247,3 +250,112 @@ was made. New decisions get appended with a date.
 - `src/Cli/Arguments.php` holds the `--name=value` parsing both entry points
   had grown separately, with validation as exceptions so the caller decides
   how to fail rather than having `exit(1)` called three frames down.
+
+## 2026-09-14 — Review pass across the ecosystem
+
+The project was read against its own claims, and against the six sibling
+repositories it shares an ecosystem with. Everything the README asserts about
+verification held - `make test` (159 tests), `make analyse` (PHPStan level 8),
+`make format-check`, all thirty-two experiments, and a check of
+`/proc/sysvipc/{shm,sem}` showing zero leaked SysV resources across the
+shared-memory, ring-buffer and benchmark runs. What follows is what did not.
+
+### The CLI refused less than it claimed to
+
+- `bin/benchmark` accepted any unknown option silently. `--repititions=99` ran
+  the suite with the default five and said nothing, which is the exact failure
+  `Options` exists to prevent on the experiment side. It now validates the
+  option names it knows and refuses the rest, in the same words.
+- `bin/experiment --format=text --output=PATH` wrote a zero-byte file and
+  reported `wrote PATH`. A text run streams its prose to stdout while the
+  experiment produces it, so there is nothing left to save by the time the
+  file is opened. The combination is refused rather than silently empty.
+- `--warmups=0` was rejected by `positiveInt()`, although `BenchmarkRunner`
+  handles it and "time the first repetition too" is a question worth asking.
+  `Arguments::nonNegativeInt()` is the one place zero is allowed.
+
+### `MappedFile` had no destructor, and it had already cost a file
+
+`FfiBuffer` keeps `__destruct()` as a backstop against an allocation whose
+last reference is dropped; `MappedFile` did not, though it holds a region and
+a descriptor and PHP releases neither. The mmap experiments deleted their
+temporary file on the last line, which is the line an exception skips - and a
+256 MiB `mmap-lazy-*.bin` from an interrupted run was still sitting in the
+container's `/tmp`. Both halves are fixed: `MappedFile::__destruct()` unmaps,
+and `Experiment\ScratchFile` registers a pid-guarded shutdown removal so an
+interrupted experiment does not leave a sparse file behind. The pid guard
+matters - `register_shutdown_function()` survives `pcntl_fork()`, so without
+it a child in `mmap:modes` would delete the file its parent still maps.
+
+### The bounds-check rationale described C, not PHP
+
+The Phase 9 entry above said `$offset + $length` "overflows for a large offset
+and wraps negative". It does not: PHP promotes to float on integer overflow,
+so `PHP_INT_MAX + 8 > 1024` is `true` and either form refuses the access. The
+three-comparison form is kept - a bounds check that silently changes type is
+one to distrust - but for that reason and not the one recorded. `MappedFile`
+used the other form and now matches; both classes have
+`testAnOffsetPastIntegerRangeIsRefused`.
+
+### `cow:many-writes` timed the fork
+
+`$start` was taken before `pcntl_fork()`, so the reported time covered the
+fork and a `smaps_rollup` read as well as the writes. The one-write row read
+`2.19 ms`, essentially none of which was the write. In a project whose subject
+is measurement hygiene this is the one kind of bug that costs more than it
+looks. The clock now starts in the child, after the baseline snapshot.
+
+### Five diagrams had been orphaned, not abandoned
+
+`img/` holds five PNGs that nothing in the current tree references, which read
+as dead weight until the history was checked: the README of the initial commit
+showed all five, each with real alt text - a process virtual-memory layout,
+two on `fork()` and Copy-on-Write, two on the shared-memory ring buffer. The
+Phase 12 rewrite replaced those sections with ASCII diagrams and dropped the
+image tags, leaving the files behind.
+
+They are restored to the README rather than deleted. The ASCII diagrams stay
+where they carry the argument - the three-panel CoW transition and the frame
+layout are precise in a way a picture is not - and the images return where
+there is no ASCII equivalent and a picture says it faster.
+
+## 2026-09-14 — Tooling no longer mirrors the sibling — it sets the bar
+
+The 2026-09-12 entry said the tooling mirrors `php-worker-pool`. Measured
+against the six siblings, it no longer does, and every difference is in this
+project's favour: PHPStan level 8 against the worker pool's level 6, a
+`.php-cs-fixer.dist.php` the worker pool and `php-mini-cache` did not have
+(both have since been given one, matching this config), ten documents against
+their two to five, and `tests/DocumentationTest.php`, which nothing else in
+the ecosystem has. The claim is withdrawn rather than restated: this project
+is the reference for the shared conventions, not a follower of them.
+
+## 2026-09-14 — "Reusable primitives" means concepts, not a dependency
+
+The README and `docs/PHASES.md` both ended their diagram with
+`Reusable primitives → real backend applications`, which reads as an offer to
+`require` this package. It is not one, and is not going to be: these are
+teaching projects, not libraries. `composer.json` stays `"type": "project"`,
+there is no `LICENSE` file - MIT is declared in `composer.json` and in the
+README, which is the ecosystem's convention - and nothing here is published.
+`php-worker-pool` has its own shared-memory telemetry and `php-job-queue` its
+own queue for exactly that reason. The diagrams now say what is actually
+transferable: the mechanisms and the measurements, read and reimplemented,
+not code to depend on.
+
+## 2026-09-14 — The boundary with `php-concurrency` is written down
+
+`php-concurrency` predates this project and covers `01_fork`,
+`02_process_lifecycle`, `03_ipc` (`unix_socket.php`, `semaphore.php`,
+`shmop.php`), `05_producer_consumer` and `07_backpressure` - the same ground
+as Phases 3 to 7 here, with two experiment names matching its lesson names
+exactly. The overlap is real and it is deliberate, but it was nowhere stated,
+which leaves it looking like duplication.
+
+The division is the question each asks. `php-concurrency` asks how work is
+coordinated across processes and answers with patterns. This project asks what
+those mechanisms cost in pages and copies, and answers with `RssShmem`, `Pss`
+and `Private_Dirty` - which is how `docs/ipc-comparison.md` reaches a
+conclusion its sibling never measures: the socket beats shared memory, because
+the lock costs more than the copy it saves. Both READMEs now say this, and
+link each other.

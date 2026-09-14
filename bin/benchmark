@@ -30,12 +30,27 @@ $fail = static function (string $message) use ($suites): never {
 /** @var array<string, Formatter> $formatters */
 $formatters = ['text' => new TextFormatter(), 'json' => new JsonFormatter(), 'csv' => new CsvFormatter()];
 
+/** Everything this script reads; anything else on the line is a mistake. */
+$known = ['format', 'output', 'iterations', 'repetitions', 'warmups'];
+
 try {
     $arguments = Arguments::parse(array_slice($argv, 1));
+
+    // Refused rather than ignored, for the same reason an experiment refuses
+    // an option it does not read: a silently dropped --repetitions is how a
+    // benchmark gets reported under a configuration it never ran with.
+    $unknown = array_keys($arguments->except(...$known));
+
+    if ($unknown !== []) {
+        $fail(sprintf('Unknown option --%s. Known options: %s', implode(', --', $unknown), implode(', ', $known)));
+    }
+
     $iterations = $arguments->has('iterations') ? $arguments->positiveInt('iterations', 1) : null;
     $runner = new BenchmarkRunner(
         repetitions: $arguments->positiveInt('repetitions', 5),
-        warmups: $arguments->positiveInt('warmups', 1),
+        // Zero is allowed here and nowhere else: "measure without warming up"
+        // is a question worth being able to ask of this harness.
+        warmups: $arguments->nonNegativeInt('warmups', 1),
     );
 } catch (InvalidArgumentException $e) {
     $fail($e->getMessage());
@@ -100,5 +115,5 @@ function usage(array $suites): string
         . "  --output=PATH            write to a file instead of stdout\n"
         . "  --iterations=N           override every benchmark's iteration count\n"
         . "  --repetitions=N          timed repetitions per benchmark (default: 5)\n"
-        . "  --warmups=N              discarded repetitions before timing (default: 1)\n";
+        . "  --warmups=N              discarded repetitions before timing (default: 1, 0 to time the first)\n";
 }

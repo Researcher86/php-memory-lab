@@ -73,14 +73,34 @@ final readonly class Arguments
      */
     public function positiveInt(string $name, int $default): int
     {
+        return $this->boundedInt($name, $default, 1, 'a positive integer');
+    }
+
+    /**
+     * Like positiveInt(), but zero is a meaningful answer rather than a
+     * mistake - `--warmups=0` asks the benchmark harness to time the very
+     * first repetition instead of discarding it.
+     *
+     * @throws InvalidArgumentException when the value is negative or not a number
+     */
+    public function nonNegativeInt(string $name, int $default): int
+    {
+        return $this->boundedInt($name, $default, 0, 'zero or a positive integer');
+    }
+
+    /**
+     * @throws InvalidArgumentException when the value is below $minimum or not a number
+     */
+    private function boundedInt(string $name, int $default, int $minimum, string $expected): int
+    {
         if (!isset($this->options[$name])) {
             return $default;
         }
 
         $value = $this->options[$name];
 
-        if (preg_match('/^\d+$/', $value) !== 1 || (int) $value < 1) {
-            throw new InvalidArgumentException(sprintf('--%s must be a positive integer, got "%s"', $name, $value));
+        if (preg_match('/^\d+$/', $value) !== 1 || (int) $value < $minimum) {
+            throw new InvalidArgumentException(sprintf('--%s must be %s, got "%s"', $name, $expected, $value));
         }
 
         return (int) $value;

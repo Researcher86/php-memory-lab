@@ -46,6 +46,15 @@ if (!in_array($format, ['text', 'json'], true)) {
     $fail(sprintf('Unknown format: %s (text or json)', $format));
 }
 
+// Refused, rather than writing an empty file and reporting success. A text run
+// streams its prose to stdout as the experiment produces it - partly so that
+// one forking children does not look hung - so by the time there is a file to
+// write, there is nothing left to put in it. Only the JSON result exists as a
+// value this script still holds.
+if ($arguments->has('output') && $format !== 'json') {
+    $fail('--output needs --format=json; a text run streams its prose as it happens, so there is nothing left to save');
+}
+
 // In JSON mode the prose is suppressed rather than captured: an experiment
 // that forks children writes from several processes at once, and interleaved
 // output inside a JSON string would be neither readable nor valid.
@@ -59,7 +68,7 @@ try {
 
 $rendered = $format === 'json'
     ? json_encode($result->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n"
-    : '';
+    : '';  // the prose already went to stdout while the experiment ran
 
 if (!$arguments->has('output')) {
     fwrite(STDOUT, $rendered);
@@ -92,7 +101,7 @@ function usage(Registry $registry): string
     }
 
     $usage .= sprintf("  --%-24s %s\n", 'format=text|json', 'prose for a reader, or the measurements as JSON');
-    $usage .= sprintf("  --%-24s %s\n", 'output=PATH', 'write the JSON result to a file');
+    $usage .= sprintf("  --%-24s %s\n", 'output=PATH', 'write the JSON result to a file (needs --format=json)');
     $usage .= "\nAn experiment refuses an option it does not read; its own list is in its file.\n";
 
     return $usage;
