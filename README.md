@@ -1,5 +1,7 @@
 # PHP Memory Lab
 
+**[🧪 PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)** · Level 1 of 8 · [`php-concurrency`](https://github.com/Researcher86/php-concurrency) →
+
 > A hands-on laboratory for PHP memory, Linux processes, Copy-on-Write, IPC, shared memory, `mmap`, and native allocations - one small, measured, explained experiment at a time.
 
 A **PHP runtime engineering playground**: every topic is turned into the
@@ -476,16 +478,36 @@ containers and never on production.
 
 ---
 
-# Related Projects
+# PHP Systems Lab
 
-### [PHP Concurrency](https://github.com/Researcher86/php-concurrency) — the same mechanisms, a different question
+This project is part of [**PHP Systems Lab**](https://github.com/Researcher86/php-systems-lab) — a collection of small
+educational PHP projects that rebuild the mechanisms behind backend
+infrastructure in order to understand them. The recommended order:
 
-The one worth reading next to this, because the overlap is deliberate and
-easy to mistake for duplication. Its `01_fork`, `02_process_lifecycle`,
-`03_ipc`, `05_producer_consumer` and `07_backpressure` cover the same
-mechanisms as Phases 3 to 7 here, and two of the names match exactly.
+| Level | Project | Focus |
+| ----- | ------- | ----- |
+| **1** | 🧠 **`php-memory-lab`** (this project) | **memory, RSS, fork, copy-on-write, `mmap`, shared memory, FFI** |
+| 2 | ⚡ [`php-concurrency`](https://github.com/Researcher86/php-concurrency) | processes, IPC, concurrency patterns, event loops, Fibers (course in Russian) |
+| 3 | ⚙️ [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | persistent master/worker pool, supervision, graceful shutdown |
+| 4 | 📬 [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | reliable background jobs: delivery leases, ACK, retries, DLQ |
+| 5 | 💾 [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory server: RESP, pipelining, TTL, Pub/Sub |
+| 6 | 🌐 [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | event-driven HTTP server: parsing, routing, middleware, keep-alive |
+| 7 | 🗄️ [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | relational engine: pages, B-trees, SQL, transactions, WAL, recovery |
+| 8 | 🏗️ [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) | integration of the components into one backend platform |
 
-The difference is the question:
+These are teaching projects, not libraries: a mechanism travels between them
+by being read in one and reimplemented in the next. Levels 1–7 do not depend
+on each other as packages. Only [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) requires the
+five components (worker pool, job queue, cache, HTTP server, database)
+through Composer and runs them together as one system.
+
+## How this project relates
+
+**[`php-concurrency`](https://github.com/Researcher86/php-concurrency) — the same mechanisms, a different question.**
+The overlap is deliberate and easy to mistake for duplication. Its `01_fork`,
+`02_process_lifecycle`, `03_ipc`, `05_producer_consumer` and `07_backpressure`
+cover the same mechanisms as Phases 3 to 7 here, and two of the names match
+exactly. The difference is the question:
 
 ```text
 php-concurrency            how is work coordinated across processes?
@@ -500,36 +522,17 @@ conclusion its sibling never measures: the Unix socket beats shared memory,
 because the lock shared memory needs costs more than the copy it saves. Read
 `php-concurrency` to learn the pattern; read this to learn what it costs.
 
-### [PHP Worker Pool](https://github.com/Researcher86/php-worker-pool)
+**[`php-worker-pool`](https://github.com/Researcher86/php-worker-pool)** — persistent forked PHP workers, IPC over socket
+pairs, a Unix domain socket front door, and a single-threaded event-driven
+Master. Its shared-memory telemetry is Phase 6 of this project applied to a
+real runtime — reimplemented there rather than depended on.
 
-A sibling playground: persistent forked PHP workers, IPC over socket pairs,
-a Unix domain socket front door, and a single-threaded event-driven Master.
-Its shared-memory telemetry is Phase 6 of this project applied to a real
-runtime - reimplemented there rather than depended on, which is how this
-ecosystem works.
-
-### [PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)
-
-`php-memory-lab` is one of seven projects in the
-[`php-systems-lab`](https://github.com/Researcher86/php-systems-lab)
-collection:
-
-| Project | Main focus |
-|---|---|
-| [`php-concurrency`](https://github.com/Researcher86/php-concurrency) | processes, IPC, concurrency patterns, event loops, Fibers |
-| [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) | memory, virtual memory, Copy-on-Write, shared memory, `mmap`, FFI |
-| [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | managing reusable worker processes |
-| [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | reliable asynchronous job processing |
-| [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory server |
-| [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | HTTP server and event loop fundamentals |
-| [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | storage engine, pages, indexes, WAL, crash recovery |
-
-None of them depends on another as a package. They are teaching projects, not
-libraries: what travels between them is the mechanism and the measurement,
-read in one and reimplemented in the next.
+**[`php-systems-platform`](https://github.com/Researcher86/php-systems-platform)** — its worker-memory experiments
+(`src/Memory/`) read `/proc` the way this project does, to show what a forked
+worker of the integrated platform actually costs.
 
 ---
 
 ## License
 
-MIT
+MIT.
