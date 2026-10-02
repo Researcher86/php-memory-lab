@@ -52,11 +52,6 @@ final readonly class Timings
     private static function percentile(array $sorted, float $fraction): float
     {
         $count = count($sorted);
-
-        if ($count === 1) {
-            return $sorted[0];
-        }
-
         $rank = (int) ceil($fraction * $count) - 1;
 
         return $sorted[max(0, min($count - 1, $rank))];

@@ -25,14 +25,11 @@ use Throwable;
  */
 final class Semaphore
 {
-    private ?SysvSemaphore $handle;
-
     private function __construct(
         public readonly int $key,
         public readonly bool $autoRelease,
-        SysvSemaphore $handle,
+        private ?SysvSemaphore $handle,
     ) {
-        $this->handle = $handle;
     }
 
     /**

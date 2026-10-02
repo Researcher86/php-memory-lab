@@ -145,8 +145,8 @@ was made. New decisions get appended with a date.
   one-element `void*[1]` array, because casting a pointer to an integer type
   segfaults this PHP build. The alternative — trusting that `mmap()` only
   fails in ways that return null — is wrong: it returns the address -1.
-- `MappedFile::open()` always `ftruncate()`s the file to the mapping size.
-  Mapping past the end of a file is allowed by the kernel and then kills the
+- `MappedFile::open()` `ftruncate()`s a short file up to the mapping size
+  (never down - see the 2026-10-02 entry). Mapping past the end of a file is allowed by the kernel and then kills the
   process with SIGBUS on first touch, which is a considerably worse way to
   learn that the file was short.
 - The SIGBUS demonstration runs in a forked child. It is the first experiment
@@ -359,3 +359,19 @@ and `Private_Dirty` - which is how `docs/ipc-comparison.md` reaches a
 conclusion its sibling never measures: the socket beats shared memory, because
 the lock costs more than the copy it saves. Both READMEs now say this, and
 link each other.
+
+## 2026-10-02 — Review: two headers and a file length that were trusted
+
+- `RingBuffer::attach()` now checks that the declared capacity and slot size
+  fit the segment, and every transaction checks that positions and count lie
+  inside the slot range. Both used to be trusted after the magic and version
+  matched, so a damaged header surfaced as a `ValueError` from `shmop_write()`
+  or a `DivisionByZeroError` rather than as `RingBufferCorruptedException`.
+- `MappedFile::open()` used to `ftruncate()` unconditionally, which cut a
+  longer existing file down to the mapping size. It now reads the file's
+  length with `lseek(SEEK_END)` - on the descriptor, so PHP's stat cache is
+  not primed with a stale size - and only ever grows the file.
+- The FFI byte copy that `FfiBuffer` and `MappedFile` each repeated lives in
+  `Libc::readAt()`/`writeAt()`. As a consequence an empty access to a freed
+  buffer or unmapped file now throws like any other access instead of
+  quietly succeeding.

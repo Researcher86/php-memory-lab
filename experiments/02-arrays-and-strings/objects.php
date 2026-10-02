@@ -42,7 +42,7 @@ return new Experiment(
 
         $run(
             'N assoc arrays  a,b,c,d',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $rows = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $rows[] = ['a' => $i, 'b' => 'x', 'c' => 1.5, 'd' => true];
@@ -54,7 +54,7 @@ return new Experiment(
 
         $run(
             'N DTO objects  a,b,c,d',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $rows = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $rows[] = new ExperimentRow($i, 'x', 1.5, true);
@@ -66,7 +66,7 @@ return new Experiment(
 
         $run(
             'N empty stdClass',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $rows = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $rows[] = new \stdClass();
@@ -78,7 +78,7 @@ return new Experiment(
 
         $run(
             'N empty arrays []',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $rows = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $rows[] = [];

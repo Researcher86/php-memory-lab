@@ -38,7 +38,7 @@ return new Experiment(
 
         $run(
             'string keys  "key_$i" => $i',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $a['key_' . $i] = $i;
@@ -50,7 +50,7 @@ return new Experiment(
 
         $run(
             'dense integer keys  0..N-1',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $a[$i] = $i;
@@ -62,7 +62,7 @@ return new Experiment(
 
         $run(
             'sparse integer keys $i*10',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $a[$i * 10] = $i;

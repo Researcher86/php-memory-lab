@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Native;
 
-use FFI;
 use FFI\CData;
 
 /**
@@ -35,13 +34,10 @@ use FFI\CData;
  */
 final class FfiBuffer
 {
-    private ?CData $pointer;
-
     private function __construct(
         public readonly int $size,
-        CData $pointer,
+        private ?CData $pointer,
     ) {
-        $this->pointer = $pointer;
     }
 
     public static function allocate(int $size): self
@@ -61,28 +57,15 @@ final class FfiBuffer
 
     public function write(int $offset, string $data): void
     {
-        $length = strlen($data);
-        $this->assertWithinBounds($offset, $length);
-
-        if ($length === 0) {
-            return;
-        }
-
-        $bytes = Libc::cast('char *', $this->requirePointer());
-        FFI::memcpy(FFI::addr($bytes[$offset]), $data, $length);
+        $this->assertWithinBounds($offset, strlen($data));
+        Libc::writeAt($this->requirePointer(), $offset, $data);
     }
 
     public function read(int $offset, int $length): string
     {
         $this->assertWithinBounds($offset, $length);
 
-        if ($length <= 0) {
-            return '';
-        }
-
-        $bytes = Libc::cast('char *', $this->requirePointer());
-
-        return FFI::string(FFI::addr($bytes[$offset]), $length);
+        return Libc::readAt($this->requirePointer(), $offset, $length);
     }
 
     /**

@@ -43,7 +43,7 @@ return new Experiment(
 
         $run(
             'append in loop ($a[] = $i)',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 1; $i <= $N; ++$i) {
                     $a[] = $i;

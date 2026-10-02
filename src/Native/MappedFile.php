@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Native;
 
-use FFI;
 use FFI\CData;
 
 /**
@@ -34,16 +33,13 @@ use FFI\CData;
  */
 final class MappedFile
 {
-    private ?CData $address = null;
-
     private function __construct(
         public readonly string $path,
         public readonly int $size,
         public readonly bool $shared,
-        CData $address,
+        private ?CData $address,
         private readonly int $descriptor,
     ) {
-        $this->address = $address;
     }
 
     /**
@@ -66,8 +62,10 @@ final class MappedFile
 
         // The file must be at least as long as the mapping. Mapping past the
         // end of a file is allowed and then kills the process with SIGBUS on
-        // first touch, which is a worse way to find out.
-        if (Libc::ftruncate($descriptor, $size) !== 0) {
+        // first touch, which is a worse way to find out. Only ever grown:
+        // ftruncate() shrinks as readily as it extends, and mapping the first
+        // $size bytes of a longer file is no reason to throw away the rest.
+        if (Libc::fileSize($descriptor) < $size && Libc::ftruncate($descriptor, $size) !== 0) {
             $error = Libc::lastError();
             Libc::close($descriptor);
 
@@ -96,26 +94,13 @@ final class MappedFile
     {
         $this->assertWithinBounds($offset, $length);
 
-        if ($length <= 0) {
-            return '';
-        }
-
-        $bytes = Libc::cast('char *', $this->requireAddress());
-
-        return FFI::string(FFI::addr($bytes[$offset]), $length);
+        return Libc::readAt($this->requireAddress(), $offset, $length);
     }
 
     public function write(int $offset, string $data): void
     {
-        $length = strlen($data);
-        $this->assertWithinBounds($offset, $length);
-
-        if ($length === 0) {
-            return;
-        }
-
-        $bytes = Libc::cast('char *', $this->requireAddress());
-        FFI::memcpy(FFI::addr($bytes[$offset]), $data, $length);
+        $this->assertWithinBounds($offset, strlen($data));
+        Libc::writeAt($this->requireAddress(), $offset, $data);
     }
 
     /**

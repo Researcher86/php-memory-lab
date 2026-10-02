@@ -38,7 +38,7 @@ return new Experiment(
 
         $run(
             'dense   keys 0..N-1',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $a[$i] = $i;
@@ -50,7 +50,7 @@ return new Experiment(
 
         $run(
             'holes  keys 0,2,4,...',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $a[$i * 2] = $i;
@@ -62,7 +62,7 @@ return new Experiment(
 
         $run(
             'built dense, then one big gap added',
-            static function () use ($N, $out): array {
+            static function () use ($N): array {
                 $a = [];
                 for ($i = 0; $i < $N; ++$i) {
                     $a[$i] = $i;

@@ -74,14 +74,11 @@ final class RingBuffer
     /** Length prefix in front of the message inside each slot. */
     private const LENGTH_PREFIX = 4;
 
-    private ?Shmop $segment;
-
     private function __construct(
         public readonly int $key,
-        Shmop $segment,
+        private ?Shmop $segment,
         private readonly Semaphore $semaphore,
     ) {
-        $this->segment = $segment;
     }
 
     /**
@@ -156,6 +153,21 @@ final class RingBuffer
                 $key,
                 $header['version'],
                 self::VERSION,
+            ));
+        }
+
+        // The magic says what the segment is, not that its numbers are true.
+        // A capacity the segment cannot hold would send the first push() past
+        // its end, and a capacity of zero would divide by it.
+        $needed = self::HEADER_SIZE + $header['capacity'] * ($header['slotSize'] + self::LENGTH_PREFIX);
+
+        if ($header['capacity'] < 1 || $header['slotSize'] < 1 || $needed > shmop_size($segment)) {
+            throw new RingBufferCorruptedException(sprintf(
+                'Ring buffer 0x%x declares %d slots of %d bytes, which do not fit its %d-byte segment',
+                $key,
+                $header['capacity'],
+                $header['slotSize'],
+                shmop_size($segment),
             ));
         }
 
@@ -311,6 +323,21 @@ final class RingBuffer
                     'Ring buffer 0x%x was left mid-update by pid %d',
                     $this->key,
                     $header['busyPid'],
+                ));
+            }
+
+            if (
+                $header['readPosition'] >= $header['capacity']
+                || $header['writePosition'] >= $header['capacity']
+                || $header['count'] > $header['capacity']
+            ) {
+                throw new RingBufferCorruptedException(sprintf(
+                    'Ring buffer 0x%x has positions %d/%d and count %d for %d slots',
+                    $this->key,
+                    $header['readPosition'],
+                    $header['writePosition'],
+                    $header['count'],
+                    $header['capacity'],
                 ));
             }
 

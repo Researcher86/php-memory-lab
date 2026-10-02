@@ -30,13 +30,10 @@ final class SharedMemorySegment
 {
     public const DEFAULT_SIZE = 64 * 1024;
 
-    private ?SysvSharedMemory $handle;
-
     private function __construct(
         public readonly int $key,
-        SysvSharedMemory $handle,
+        private ?SysvSharedMemory $handle,
     ) {
-        $this->handle = $handle;
     }
 
     /**

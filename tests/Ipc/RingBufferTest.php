@@ -168,6 +168,45 @@ final class RingBufferTest extends TestCase
     }
 
     /**
+     * Magic and version only say what the segment claims to be. A capacity
+     * larger than the segment used to be accepted and then surfaced as a
+     * ValueError from shmop_write() on the first push - and a capacity of
+     * zero as a DivisionByZeroError - instead of as corruption.
+     */
+    public function testACapacityTheSegmentCannotHoldIsRefused(): void
+    {
+        $buffer = $this->buffer(2, 16);
+        $this->pokeHeader($buffer->key, self::OFFSET_CAPACITY, 1_000);
+
+        $this->expectException(RingBufferCorruptedException::class);
+        $this->expectExceptionMessage('do not fit');
+
+        RingBuffer::attach($buffer->key);
+    }
+
+    public function testAZeroCapacityIsRefused(): void
+    {
+        $buffer = $this->buffer(2, 16);
+        $this->pokeHeader($buffer->key, self::OFFSET_CAPACITY, 0);
+
+        $this->expectException(RingBufferCorruptedException::class);
+
+        RingBuffer::attach($buffer->key);
+    }
+
+    /** The mutable half of the header is checked on every operation instead. */
+    public function testAPositionPastTheLastSlotIsRefused(): void
+    {
+        $buffer = $this->buffer(2, 16);
+        $this->pokeHeader($buffer->key, self::OFFSET_WRITE_POSITION, 7);
+
+        $this->expectException(RingBufferCorruptedException::class);
+        $this->expectExceptionMessage('positions');
+
+        $buffer->push('lost');
+    }
+
+    /**
      * A header left mid-update. The kernel gives the semaphore back when its
      * holder dies (SEM_UNDO), so the next process gets a lock over a buffer
      * whose count and positions no longer agree - and nothing but this flag
@@ -241,6 +280,8 @@ final class RingBufferTest extends TestCase
     }
 
     private const OFFSET_VERSION = 4;
+    private const OFFSET_CAPACITY = 8;
+    private const OFFSET_WRITE_POSITION = 20;
     private const OFFSET_STATE = 28;
 
     private function buffer(int $capacity, int $slotSize): RingBuffer

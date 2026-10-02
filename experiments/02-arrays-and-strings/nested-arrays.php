@@ -40,7 +40,7 @@ return new Experiment(
 
         $run(
             "table ROWS x COLS filled with range(COLS)",
-            static function () use ($ROWS, $COLS, $out): array {
+            static function () use ($ROWS, $COLS): array {
                 $table = [];
                 for ($r = 0; $r < $ROWS; ++$r) {
                     $table[] = range(0, $COLS - 1);
@@ -52,7 +52,7 @@ return new Experiment(
 
         $run(
             "same table, rows share one frozen row (reference)",
-            static function () use ($ROWS, $COLS, $out): array {
+            static function () use ($ROWS, $COLS): array {
                 $frozenRow = range(0, $COLS - 1);
                 $table = [];
                 for ($r = 0; $r < $ROWS; ++$r) {
@@ -65,7 +65,7 @@ return new Experiment(
 
         $run(
             "compact CSV-like version, one flat array of ints ROWS*COLS",
-            static function () use ($ROWS, $COLS, $out): array {
+            static function () use ($ROWS, $COLS): array {
                 return range(0, $ROWS * $COLS - 1);
             },
         );

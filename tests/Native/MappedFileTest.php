@@ -57,6 +57,25 @@ final class MappedFileTest extends TestCase
     }
 
     /**
+     * open() is documented to grow the file, and it used to call ftruncate()
+     * unconditionally - which cut a longer existing file down to the mapping
+     * size and discarded everything past it.
+     */
+    public function testALongerFileIsNotShrunkToTheMappingSize(): void
+    {
+        $path = $this->path();
+        file_put_contents($path, str_repeat('a', 4096) . 'tail');
+
+        $mapping = MappedFile::open($path, 4096);
+        $this->mappings[] = $mapping;
+
+        clearstatcache(true, $path);
+        self::assertSame(4100, filesize($path));
+        self::assertSame('aaaa', $mapping->read(4092, 4));
+        self::assertStringEndsWith('tail', (string) file_get_contents($path));
+    }
+
+    /**
      * MAP_SHARED writes go through the page cache, so the file has the data
      * before anyone calls msync() - flushing is about surviving a power cut,
      * not about being visible.

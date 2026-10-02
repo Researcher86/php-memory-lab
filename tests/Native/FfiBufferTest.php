@@ -133,6 +133,22 @@ final class FfiBufferTest extends TestCase
         $buffer->read(0, 1);
     }
 
+    /**
+     * An empty access used to return before the pointer was looked at, so a
+     * freed buffer answered read(0, 0) and write(0, '') as if it were still
+     * allocated. Freed means freed, whatever the length.
+     */
+    public function testAnEmptyAccessToAFreedBufferStillThrows(): void
+    {
+        $buffer = FfiBuffer::allocate(64);
+        $buffer->free();
+
+        $this->expectException(NativeMemoryException::class);
+        $this->expectExceptionMessage('already freed');
+
+        $buffer->write(0, '');
+    }
+
     public function testAllocationsDoNotOverlap(): void
     {
         $first = FfiBuffer::allocate(1024);

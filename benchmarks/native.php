@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Benchmark\Benchmark;
+use App\Experiment\ScratchFile;
 use App\Native\FfiBuffer;
 use App\Native\MappedFile;
 
@@ -20,17 +21,16 @@ use App\Native\MappedFile;
 $total = 16 * 1024 * 1024;
 $block = 64 * 1024;
 $chunk = str_repeat('x', $block);
-$path = sys_get_temp_dir() . '/benchmark-native-' . bin2hex(random_bytes(4)) . '.bin';
+$path = ScratchFile::reserve('benchmark-native');
 
 $buffer = FfiBuffer::allocate($total);
 $mapping = MappedFile::open($path, $total);
 $string = str_repeat("\0", $total);
 $offset = 8 * 1024 * 1024;
 
-register_shutdown_function(static function () use ($buffer, $mapping, $path): void {
+register_shutdown_function(static function () use ($buffer, $mapping): void {
     $buffer->free();
     $mapping->unmap();
-    @unlink($path);
 });
 
 return [

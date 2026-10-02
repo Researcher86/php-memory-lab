@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\ScratchFile;
 use App\Memory\ByteFormatter;
 use App\Memory\MemoryReporter;
 use App\Native\FfiBuffer;
@@ -36,7 +37,7 @@ return new Experiment(
         // of 256 refcount increments and make the column meaningless.
         $source = str_repeat('s', $total);
         $reporter = new MemoryReporter();
-        $path = sys_get_temp_dir() . '/ffi-compare-' . bin2hex(random_bytes(4)) . '.bin';
+        $path = ScratchFile::reserve('ffi-compare');
 
         /**
          * One row of the table. A closure rather than a function because it

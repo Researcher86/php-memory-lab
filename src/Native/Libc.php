@@ -39,7 +39,6 @@ final class Libc
     public const PROT_WRITE = 2;
     public const MAP_SHARED = 1;
     public const MAP_PRIVATE = 2;
-    public const MAP_ANONYMOUS = 0x20;
     public const MS_SYNC = 4;
 
     /** mmap() reports failure as the address -1, not as null. */
@@ -47,6 +46,9 @@ final class Libc
 
     /** <unistd.h>, the argument that asks sysconf() for the page size. */
     private const SC_PAGESIZE = 30;
+
+    /** <unistd.h>, the lseek() origin that measures a file from its end. */
+    private const SEEK_END = 2;
 
     private static ?FFI $handle = null;
 
@@ -68,6 +70,18 @@ final class Libc
     public static function ftruncate(int $descriptor, int $length): int
     {
         return (int) self::handle()->ftruncate($descriptor, $length);
+    }
+
+    /**
+     * Length of the open file, by seeking to its end. Asked of the descriptor
+     * rather than through filesize(), whose stat cache would then hand the
+     * caller this size after the file has grown.
+     *
+     * @return int bytes, or a negative number on failure
+     */
+    public static function fileSize(int $descriptor): int
+    {
+        return (int) self::handle()->lseek($descriptor, 0, self::SEEK_END);
     }
 
     /**
@@ -110,6 +124,30 @@ final class Libc
     public static function cast(string $type, CData $pointer): CData
     {
         return self::handle()->cast($type, $pointer);
+    }
+
+    /**
+     * Copies $length bytes starting $offset bytes past $base into a PHP
+     * string. Nothing here checks the range - C would not either - so the
+     * caller does that first, while it still knows how big the region is.
+     */
+    public static function readAt(CData $base, int $offset, int $length): string
+    {
+        if ($length <= 0) {
+            return '';
+        }
+
+        return FFI::string(FFI::addr(self::cast('char *', $base)[$offset]), $length);
+    }
+
+    /** The other direction of readAt(), with the same unchecked contract. */
+    public static function writeAt(CData $base, int $offset, string $data): void
+    {
+        if ($data === '') {
+            return;
+        }
+
+        FFI::memcpy(FFI::addr(self::cast('char *', $base)[$offset]), $data, strlen($data));
     }
 
     /**
@@ -158,6 +196,7 @@ final class Libc
                 int open(const char *pathname, int flags, int mode);
                 int close(int fd);
                 int ftruncate(int fd, long length);
+                long lseek(int fd, long offset, int whence);
                 void *mmap(void *addr, size_t length, int prot, int flags, int fd, long offset);
                 int munmap(void *addr, size_t length);
                 int msync(void *addr, size_t length, int flags);
