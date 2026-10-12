@@ -71,6 +71,8 @@ return new Experiment(
             $consumer = RingBuffer::attach($buffer->key);
 
             for ($received = 0; $received < $messages;) {
+                // Intentional, as are the two sleeps below: in this experiment
+                // the pacing is the variable, not a way to wait for a process.
                 usleep($consumerDelayUs);
 
                 if ($consumer->pop() !== null) {
@@ -150,7 +152,7 @@ return new Experiment(
                     ++$received;
                 }
 
-                $usage = getrusage();
+                $usage = getrusage() ?: throw new RuntimeException('getrusage() failed');
                 $cpu = $usage['ru_utime.tv_sec'] + $usage['ru_utime.tv_usec'] / 1e6
                     + $usage['ru_stime.tv_sec'] + $usage['ru_stime.tv_usec'] / 1e6;
 

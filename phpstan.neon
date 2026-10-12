@@ -4,6 +4,8 @@ parameters:
         - src
         - bin
         - tests
+        - experiments
+        - benchmarks
     ignoreErrors:
         # FFI resolves C functions at runtime, so every libc call looks like a
         # call to an undefined method on FFI. They are all made in this one
@@ -13,3 +15,12 @@ parameters:
         -
             identifier: method.notFound
             path: src/Native/Libc.php
+        # Experiments read a channel "until the peer hangs up", and the only
+        # way out of that loop is the ChannelClosedException receive() throws
+        # - or, for the producer failure-modes kills mid-push, SIGKILL. PHPStan
+        # sees a while (true) with no break and calls it always true, which
+        # is exactly the point. Restricted to experiments/: library code in
+        # src/ should have an exit it can name.
+        -
+            identifier: while.alwaysTrue
+            path: experiments/*

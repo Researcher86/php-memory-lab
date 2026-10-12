@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\Rendezvous;
 use App\Memory\ByteFormatter;
 use App\Memory\MemoryReporter;
 use App\Memory\ProcStatusReader;
@@ -17,19 +18,21 @@ return new Experiment(
         $out->heading('fork: one / two / four / eight / sixteen children');
 
         /*
-         * Each child stays alive (sleep) while the parent snapshots itself and reads
-         * every child's VmRSS from /proc/<pid>/status. RSS is counted per process, so
+         * Each child stays alive, held at a Rendezvous, while the parent snapshots
+         * itself and reads every child's VmRSS from /proc/<pid>/status. RSS is counted per process, so
          * shared pages appear in several rows at once; PSS divides them.
          */
         $reporter = new MemoryReporter();
         $statusReader = new ProcStatusReader();
 
-        $forkChild = static function () {
-            usleep(800_000);
+        $forkChild = static function (Rendezvous $rendezvous): never {
+            $rendezvous->arrive();
+            $rendezvous->awaitRelease();
             exit(0);
         };
 
         foreach ([1, 2, 4, 8, 16] as $childrenCount) {
+            $rendezvous = Rendezvous::create();
             $baseline = $reporter->snapshot();
             $start = microtime(true);
 
@@ -41,14 +44,14 @@ return new Experiment(
                     exit(1);
                 }
                 if ($pid === 0) {
-                    $forkChild();
+                    $forkChild($rendezvous);
                 }
                 $children[] = $pid;
             }
 
             $forkTimeMs = (microtime(true) - $start) * 1000;
 
-            usleep(150_000); // let the children run their tiny sleep
+            $rendezvous->awaitArrivals($childrenCount);
             $during = $reporter->snapshot();
 
             $childrenRss = 0;
@@ -58,6 +61,7 @@ return new Experiment(
             }
 
             $totalRss = (int) $during->rss + $childrenRss;
+            $rendezvous->release();
 
             $out->write(sprintf(
                 "children %2d | forks %.2f ms (%.2f ms/fork) | parent RSS %-9s | parent PSS %-9s | children RSS %-9s | approx total RSS %s\n",

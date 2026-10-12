@@ -50,13 +50,12 @@ return [
         $mapping->read($offset, $block);
     }),
 
-    new Benchmark('PHP string: read 64 KiB', 20_000, static function () use ($string, $offset, $block): void {
-        substr($string, $offset, $block);
-    }),
+    // These two return their result rather than dropping it: a pure function
+    // whose value nobody reads is a call an optimiser is entitled to remove,
+    // and the row would then time nothing.
+    new Benchmark('PHP string: read 64 KiB', 20_000, static fn (): string => substr($string, $offset, $block)),
 
-    new Benchmark('PHP string: write 64 KiB', 200, static function () use ($string, $offset, $chunk): void {
-        substr_replace($string, $chunk, $offset, strlen($chunk));
-    }),
+    new Benchmark('PHP string: write 64 KiB', 200, static fn (): string => substr_replace($string, $chunk, $offset, strlen($chunk))),
 
     new Benchmark('mapped file: msync 16 MiB', 200, static function () use ($mapping): void {
         $mapping->flush();

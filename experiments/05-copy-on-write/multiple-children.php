@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\Rendezvous;
 use App\Memory\ByteFormatter;
 use App\Memory\SmapsRollupReader;
 
@@ -29,6 +30,7 @@ return new Experiment(
         $out->smaps('parent BEFORE forking', $smaps->read());
 
         $pids = [];
+        $rendezvous = Rendezvous::create();
 
         for ($c = 0; $c < $children; $c++) {
             $pid = pcntl_fork();
@@ -49,15 +51,17 @@ return new Experiment(
                     ByteFormatter::format($smaps->read()->privateDirty),
                 ));
 
-                usleep(800_000);
+                $rendezvous->arrive();
+                $rendezvous->awaitRelease();
                 exit(0);
             }
 
             $pids[] = $pid;
         }
 
-        usleep(300_000);
+        $rendezvous->awaitArrivals($children);
         $out->smaps('parent WHILE children rewrite disjoint regions', $smaps->read());
+        $rendezvous->release();
 
         foreach ($pids as $pid) {
             pcntl_waitpid($pid, $status);

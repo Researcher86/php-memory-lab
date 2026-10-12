@@ -40,8 +40,8 @@ return new Experiment(
          */
         function cpu_seconds(): float
         {
-            $self = getrusage();
-            $children = getrusage(1);
+            $self = getrusage() ?: throw new RuntimeException('getrusage() failed');
+            $children = getrusage(1) ?: throw new RuntimeException('getrusage() failed');
 
             return $self['ru_utime.tv_sec'] + $self['ru_utime.tv_usec'] / 1e6
                 + $self['ru_stime.tv_sec'] + $self['ru_stime.tv_usec'] / 1e6
@@ -155,7 +155,7 @@ return new Experiment(
         {
             $key = SharedMemorySegment::randomKey();
             $slotStride = $size + 4;
-            $segment = shmop_open($key, 'c', 0666, 32 + $capacity * $slotStride);
+            $segment = shmop_open($key, 'c', 0o666, 32 + $capacity * $slotStride);
 
             if ($segment === false) {
                 throw new RuntimeException('unable to create the unsynchronized segment');

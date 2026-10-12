@@ -47,6 +47,10 @@ was made. New decisions get appended with a date.
 
 > Superseded on 2026-09-14: it no longer does, and the difference is this
 > project's. See "Tooling no longer mirrors the sibling — it sets the bar".
+>
+> The CI bullet below is superseded separately: CI now runs the make targets
+> in the project's Docker image. See "CI runs the make targets in Docker"
+> (2026-10-12).
 
 
 - `docker-compose.yml` gained a named service container and matches the
@@ -255,7 +259,7 @@ was made. New decisions get appended with a date.
 
 The project was read against its own claims, and against the six sibling
 repositories it shares an ecosystem with. Everything the README asserts about
-verification held - `make test` (159 tests), `make analyse` (PHPStan level 8),
+verification held - `make test` (the whole suite), `make analyse` (PHPStan level 8),
 `make format-check`, all thirty-two experiments, and a check of
 `/proc/sysvipc/{shm,sem}` showing zero leaked SysV resources across the
 shared-memory, ring-buffer and benchmark runs. What follows is what did not.
@@ -347,7 +351,7 @@ not code to depend on.
 
 `php-concurrency` predates this project and covers `01_fork`,
 `02_process_lifecycle`, `03_ipc` (`unix_socket.php`, `semaphore.php`,
-`shmop.php`), `05_producer_consumer` and `07_backpressure` - the same ground
+`sysvshm.php`, then named `shmop.php`), `05_producer_consumer` and `07_backpressure` - the same ground
 as Phases 3 to 7 here, with two experiment names matching its lesson names
 exactly. The overlap is real and it is deliberate, but it was nowhere stated,
 which leaves it looking like duplication.
@@ -375,3 +379,47 @@ link each other.
   `Libc::readAt()`/`writeAt()`. As a consequence an empty access to a freed
   buffer or unmapped file now throws like any other access instead of
   quietly succeeding.
+
+## 2026-10-12 — CI runs the make targets in Docker
+
+- `.github/workflows/ci.yml` no longer installs PHP with
+  `shivammathur/setup-php` and calls `composer test`, `composer analyse` and
+  `composer format:check` directly, as the 2026-09-12 entry records. Since
+  commit `f9547e3` it runs `make build`, `make install`, `make test`,
+  `make analyse` and `make format-check` - the same image and the same
+  targets as local development, so CI checks the environment the project is
+  actually developed in, and an extension added to the Dockerfile cannot be
+  forgotten in a second list of extensions in the workflow.
+- The Makefile drops the TTY when `CI` is set (`TTY := $(if $(CI),-T,)`),
+  because GitHub Actions has no terminal for `docker compose exec` to attach
+  to.
+- The 2026-09-14 review entry used to give the suite's size as a number. It
+  no longer does: the count changes with every phase that adds a test, and a
+  stale count in a decision record reads as a claim that was checked. `make
+  test` prints the current one.
+
+## 2026-10-12 — Experiments are analysed, and forked children meet at a `Rendezvous`
+
+- PHPStan (still level 8) and php-cs-fixer now cover `experiments/` and
+  `benchmarks/` as well as `src/`, `bin/` and `tests/`. They are most of the
+  code a reader of this lab actually reads, and the first run found twenty
+  findings there, none in the code already covered: `getrusage()` results
+  used without the `false` check, a narrowing lost to an assignment inside
+  `sprintf()`, and two benchmark rows that discarded the result of a pure
+  function - a call an optimiser is entitled to remove, so the row could time
+  nothing. One identifier is ignored for `experiments/` only:
+  `while.alwaysTrue`, for loops that read a channel until the peer hangs up
+  and leave through the exception that says so.
+- The forking experiments used to line parent and child up with a pair of
+  sleeps - the child's long enough, it was hoped, to outlast the parent's
+  snapshot. `App\Experiment\Rendezvous` replaces that with a socket pair:
+  each child writes a byte once it is in the state being measured and then
+  waits for EOF, and the parent measures between reading those bytes and
+  closing its end. `process:lifecycle` waits for its zombie with
+  `pcntl_waitid(WEXITED | WNOWAIT)`, which observes the exit without reaping
+  it. Sleeps remain where they are the experiment - the slow consumer of
+  `ipc:backpressure`, the pacing of `ring:pacing`, the random kill point of
+  `ring:failures` - and each says so.
+- The two-process test in `RingBufferTest` polls with a deadline. A producer
+  that died used to leave the suite waiting for a message that was not
+  coming; it now fails with how many messages arrived.

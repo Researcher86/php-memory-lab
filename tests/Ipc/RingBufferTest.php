@@ -259,10 +259,27 @@ final class RingBufferTest extends TestCase
 
         $received = [];
 
+        // Polling has no end of its own: a producer that died, or never got
+        // going, would leave this loop waiting for a message that is not
+        // coming and hang the suite. The deadline turns that into a failure.
+        $deadline = hrtime(true) + self::EXCHANGE_TIMEOUT_NS;
+
         while (count($received) < $messages) {
             $message = $buffer->pop();
 
             if ($message === null) {
+                if (hrtime(true) > $deadline) {
+                    posix_kill($pid, SIGKILL);
+                    pcntl_waitpid($pid, $status);
+
+                    self::fail(sprintf(
+                        'received %d of %d messages before the %d s deadline; producer stopped',
+                        count($received),
+                        $messages,
+                        intdiv(self::EXCHANGE_TIMEOUT_NS, 1_000_000_000),
+                    ));
+                }
+
                 usleep(100);
 
                 continue;
@@ -278,6 +295,9 @@ final class RingBufferTest extends TestCase
         self::assertSame('message ' . ($messages - 1), $received[$messages - 1]);
         self::assertCount($messages, $received);
     }
+
+    /** Two hundred messages take milliseconds; this is for a dead producer, not a slow one. */
+    private const EXCHANGE_TIMEOUT_NS = 10_000_000_000;
 
     private const OFFSET_VERSION = 4;
     private const OFFSET_CAPACITY = 8;

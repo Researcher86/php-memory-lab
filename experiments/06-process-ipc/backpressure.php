@@ -38,6 +38,8 @@ return new Experiment(
             $producer->close();
 
             for ($i = 0; $i < $messages; $i++) {
+                // Intentional: this sleep is the slow consumer being measured,
+                // not a wait for the other process.
                 usleep($consumerDelayMs * 1000);
                 $consumer->receive();
             }

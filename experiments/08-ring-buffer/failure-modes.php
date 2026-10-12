@@ -47,7 +47,7 @@ return new Experiment(
 
         $refuses('a segment holding other data', static function (): void {
             $key = SharedMemorySegment::randomKey();
-            $foreign = shmop_open($key, 'c', 0666, 256);
+            $foreign = shmop_open($key, 'c', 0o666, 256);
 
             if ($foreign === false) {
                 return;
@@ -64,7 +64,7 @@ return new Experiment(
 
         $refuses('a segment too small for a header', static function (): void {
             $key = SharedMemorySegment::randomKey();
-            $tiny = shmop_open($key, 'c', 0666, 8);
+            $tiny = shmop_open($key, 'c', 0o666, 8);
 
             if ($tiny === false) {
                 return;

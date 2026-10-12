@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\Rendezvous;
 use App\Memory\MemoryReporter;
 use App\Memory\SmapsRollupReader;
 
@@ -23,6 +24,7 @@ return new Experiment(
 
         $out->smaps('parent, after allocating 1M ints', $smaps->read());
 
+        $rendezvous = Rendezvous::create();
         $pid = pcntl_fork();
 
         if ($pid === 0) {
@@ -34,12 +36,14 @@ return new Experiment(
 
             $out->smaps('child, after reading whole array', $smaps->read());
             $out->write(sprintf("child read %d elements, sum=%d (array untouched)\n", $count, $sum));
-            usleep(400_000);
+            $rendezvous->arrive();
+            $rendezvous->awaitRelease();
             exit(0);
         }
 
-        usleep(250_000);
+        $rendezvous->awaitArrivals();
         $out->smaps('parent, while child is reading (RSS should not move)', $smaps->read());
+        $rendezvous->release();
 
         pcntl_waitpid($pid, $status);
         $out->smaps('parent, after child exited', $smaps->read());

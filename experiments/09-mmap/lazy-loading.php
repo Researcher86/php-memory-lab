@@ -33,7 +33,7 @@ return new Experiment(
         /** @return array{minor: int, major: int} */
         function faults(): array
         {
-            $usage = getrusage();
+            $usage = getrusage() ?: throw new RuntimeException('getrusage() failed');
 
             return ['minor' => $usage['ru_minflt'], 'major' => $usage['ru_majflt']];
         }
@@ -119,10 +119,11 @@ return new Experiment(
 
         $mapping->unmap();
         $afterUnmap = $reporter->snapshot();
+        $d = $reporter->diff($afterMap, $afterUnmap);
 
         $out->write(sprintf(
             "\nAfter munmap():\n  VmSize %s   RSS %s\n",
-            ($d = $reporter->diff($afterMap, $afterUnmap))->virtualMemory === null ? 'n/a' : ByteFormatter::formatSigned($d->virtualMemory),
+            $d->virtualMemory === null ? 'n/a' : ByteFormatter::formatSigned($d->virtualMemory),
             $d->rss === null ? 'n/a' : ByteFormatter::formatSigned($d->rss),
         ));
 

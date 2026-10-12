@@ -126,7 +126,9 @@ return new Experiment(
                 $box['data'] = substr_replace($box['data'], $chunk, $i * $block, $block);
             },
             static fn (array $box, int $i): string => substr($box['data'], $i * $block, $block),
-            static function (array &$box): void { $box['data'] = ''; },
+            static function (array &$box): void {
+                $box['data'] = '';
+            },
         );
 
         $measure(
@@ -137,25 +139,35 @@ return new Experiment(
                 $box['data'][$i] = substr($source, $i * $block, $block);
             },
             static fn (array $box, int $i): string => $box['data'][$i],
-            static function (array &$box): void { $box['data'] = []; },
+            static function (array &$box): void {
+                $box['data'] = [];
+            },
         );
 
         $measure(
             'FFI buffer',
             $blocks,
             static fn (): FfiBuffer => FfiBuffer::allocate($total),
-            static function (FfiBuffer $buffer, int $i) use ($block, $chunk): void { $buffer->write($i * $block, $chunk); },
+            static function (FfiBuffer $buffer, int $i) use ($block, $chunk): void {
+                $buffer->write($i * $block, $chunk);
+            },
             static fn (FfiBuffer $buffer, int $i): string => $buffer->read($i * $block, $block),
-            static function (FfiBuffer $buffer): void { $buffer->free(); },
+            static function (FfiBuffer $buffer): void {
+                $buffer->free();
+            },
         );
 
         $measure(
             'mapped file',
             $blocks,
             static fn (): MappedFile => MappedFile::open($path, $total),
-            static function (MappedFile $file, int $i) use ($block, $chunk): void { $file->write($i * $block, $chunk); },
+            static function (MappedFile $file, int $i) use ($block, $chunk): void {
+                $file->write($i * $block, $chunk);
+            },
             static fn (MappedFile $file, int $i): string => $file->read($i * $block, $block),
-            static function (MappedFile $file): void { $file->unmap(); },
+            static function (MappedFile $file): void {
+                $file->unmap();
+            },
         );
 
         @unlink($path);

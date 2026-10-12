@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\Rendezvous;
 use App\Memory\ByteFormatter;
 use App\Memory\MemoryReporter;
 
@@ -23,6 +24,7 @@ return new Experiment(
         $afterAlloc = $reporter->snapshot();
         $out->delta('parent allocated', $reporter->diff($before, $afterAlloc));
 
+        $rendezvous = Rendezvous::create();
         $pid = pcntl_fork();
 
         if ($pid === -1) {
@@ -32,7 +34,6 @@ return new Experiment(
 
         if ($pid === 0) {
             // The child only reads: no page is copied, Linux CoW holds it shared.
-            usleep(150_000);
             $child = $reporter->snapshot();
             $out->write("\n--- child after fork (read-only on the inherited array) ---\n");
             $out->write(sprintf("  PHP usage: %s\n", ByteFormatter::format($child->phpUsage)));
@@ -42,15 +43,18 @@ return new Experiment(
                 "  read check (first + last element): %d\n",
                 $data[0] + $data[$count - 1],
             ));
+            $rendezvous->arrive();
+            $rendezvous->awaitRelease();
             exit(0);
         }
 
-        // Parent a moment later: the child shares the array's pages, so the parent's
-        // own RSS does not double.
-        usleep(100_000);
+        // Parent, while the child is held alive: the child shares the array's
+        // pages, so the parent's own RSS does not double.
+        $rendezvous->awaitArrivals();
         $during = $reporter->snapshot();
         $out->write("\nparent while child lives (read-only child):\n");
         $out->write(sprintf("  RSS: %s    PSS: %s\n", ByteFormatter::format($during->rss ?? 0), ByteFormatter::format($during->pss ?? 0)));
+        $rendezvous->release();
 
         pcntl_waitpid($pid, $status);
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\Rendezvous;
 use App\Experiment\ScratchFile;
 use App\Memory\ByteFormatter;
 use App\Memory\SmapsRollupReader;
@@ -88,6 +89,7 @@ return new Experiment(
         }
 
         $parentBefore = $smaps->read();
+        $rendezvous = Rendezvous::create();
         $pid = pcntl_fork();
 
         if ($pid === 0) {
@@ -106,14 +108,16 @@ return new Experiment(
             }
 
             $out->smaps('  child, after writing to all of it  ', $smaps->read());
-            usleep(400_000);
+            $rendezvous->arrive();
+            $rendezvous->awaitRelease();
             $child->unmap();
 
             exit(0);
         }
 
-        usleep(150_000);
+        $rendezvous->awaitArrivals();
         $out->smaps('  parent, while the child maps it too', $smaps->read());
+        $rendezvous->release();
         pcntl_waitpid($pid, $status);
 
         $out->write(sprintf(

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Experiment\Experiment;
 use App\Experiment\Options;
 use App\Experiment\Output;
+use App\Experiment\Rendezvous;
 
 return new Experiment(
     name: 'process:lifecycle',
@@ -61,6 +62,10 @@ return new Experiment(
         /*
          * 3. Zombie: the child exits but the parent delays waitpid; the state
          *    visible in /proc/<pid>/status is Z until the parent reaps it.
+         *
+         *    waitid() with WNOWAIT is how the parent knows the child has exited
+         *    without reaping it - a sleep would only make that likely. It blocks
+         *    until the exit and leaves the child exactly where it was: a zombie.
          */
         $out->write("\n3) zombie: child exits, parent delays waitpid:\n");
         $pid = pcntl_fork();
@@ -68,7 +73,7 @@ return new Experiment(
             exit(0);
         }
 
-        sleep(1);
+        pcntl_waitid(P_PID, $pid, $info, WEXITED | WNOWAIT);
         $stateLine = '';
         foreach (file('/proc/' . $pid . '/status', FILE_IGNORE_NEW_LINES) ?: [] as $line) {
             if (str_starts_with($line, 'State:')) {
@@ -81,16 +86,22 @@ return new Experiment(
 
         /*
          * 4. Signal termination: the child blocks; the parent sends SIGTERM and the
-         *    wait shows wifsignaled + wtermsig.
+         *    wait shows wifsignaled + wtermsig. The child reports that it is up
+         *    before the parent signals it, so the signal lands on a running
+         *    process rather than racing its start.
          */
         $out->write("\n4) killed by signal (SIGTERM):\n");
+        $rendezvous = Rendezvous::create();
         $pid = pcntl_fork();
         if ($pid === 0) {
+            $rendezvous->arrive();
+            // Intentional: the sleep is the blocked work SIGTERM interrupts.
+            // Thirty seconds only has to be longer than the parent takes.
             sleep(30);
             exit(0);
         }
 
-        usleep(200_000);
+        $rendezvous->awaitArrivals();
         posix_kill($pid, SIGTERM);
         $waitFor($pid, 'after SIGTERM');
 

@@ -17,7 +17,9 @@ declare(strict_types=1);
  * that exists rather than to impose a different one.
  */
 $finder = PhpCsFixer\Finder::create()
+    ->in(__DIR__ . '/benchmarks')
     ->in(__DIR__ . '/bin')
+    ->in(__DIR__ . '/experiments')
     ->in(__DIR__ . '/src')
     ->in(__DIR__ . '/tests');
 
